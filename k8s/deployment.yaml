@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: utility-service
+  labels:
+    app: utility-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: utility-service
+  template:
+    metadata:
+      labels:
+        app: utility-service
+    spec:
+      containers:
+      - name: utility-service
+        image: justscroll/utilitysvc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 50051
+          name: grpc
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          exec:
+            command: ["/bin/sh", "-c", "nc -z localhost 50051"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", "nc -z localhost 50051"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
