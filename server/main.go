@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	pb "github.com/justscrollorg/utility-service/proto"
 )
 
@@ -32,6 +33,9 @@ func main() {
 	
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &server{})
+	
+	// Enable gRPC reflection
+	reflection.Register(s)
 	
 	log.Printf("gRPC server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
