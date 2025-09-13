@@ -10,6 +10,10 @@ spec:
   - port: 50051
     targetPort: 50051
     protocol: TCP
-    name: grpc
+    name: hello-grpc
+  - port: 50052
+    targetPort: 50052
+    protocol: TCP
+    name: mongo-grpc
   selector:
     app: utility-service

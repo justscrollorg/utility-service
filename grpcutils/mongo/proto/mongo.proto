@@ -1,0 +1,170 @@
+syntax = "proto3";
+
+package mongo;
+
+option go_package = "github.com/justscrollorg/utility-service/grpcutils/mongo/proto";
+
+// MongoDB CRUD service definition
+service MongoService {
+  // Database operations
+  rpc ListDatabases (ListDatabasesRequest) returns (ListDatabasesResponse) {}
+  rpc ListCollections (ListCollectionsRequest) returns (ListCollectionsResponse) {}
+  
+  // CRUD operations
+  rpc InsertDocument (InsertDocumentRequest) returns (InsertDocumentResponse) {}
+  rpc FindDocuments (FindDocumentsRequest) returns (FindDocumentsResponse) {}
+  rpc UpdateDocument (UpdateDocumentRequest) returns (UpdateDocumentResponse) {}
+  rpc DeleteDocument (DeleteDocumentRequest) returns (DeleteDocumentResponse) {}
+  
+  // Bulk operations
+  rpc InsertMany (InsertManyRequest) returns (InsertManyResponse) {}
+  rpc DeleteMany (DeleteManyRequest) returns (DeleteManyResponse) {}
+  
+  // Aggregation
+  rpc CountDocuments (CountDocumentsRequest) returns (CountDocumentsResponse) {}
+}
+
+// Common types
+message Document {
+  string json_data = 1;  // JSON string representation of the document
+}
+
+message Filter {
+  string json_filter = 1;  // JSON string representation of MongoDB filter
+}
+
+message Update {
+  string json_update = 1;  // JSON string representation of MongoDB update operations
+}
+
+// Database listing
+message ListDatabasesRequest {}
+
+message DatabaseInfo {
+  string name = 1;
+  int64 size_on_disk = 2;
+  bool empty = 3;
+}
+
+message ListDatabasesResponse {
+  repeated DatabaseInfo databases = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Collection listing
+message ListCollectionsRequest {
+  string database = 1;
+}
+
+message CollectionInfo {
+  string name = 1;
+  string type = 2;
+  map<string, string> options = 3;
+}
+
+message ListCollectionsResponse {
+  repeated CollectionInfo collections = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Insert operations
+message InsertDocumentRequest {
+  string database = 1;
+  string collection = 2;
+  Document document = 3;
+}
+
+message InsertDocumentResponse {
+  string inserted_id = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+message InsertManyRequest {
+  string database = 1;
+  string collection = 2;
+  repeated Document documents = 3;
+}
+
+message InsertManyResponse {
+  repeated string inserted_ids = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Find operations
+message FindDocumentsRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  int32 limit = 4;      // 0 means no limit
+  int32 skip = 5;       // For pagination
+  string sort = 6;      // JSON string for sort specification
+}
+
+message FindDocumentsResponse {
+  repeated Document documents = 1;
+  bool success = 2;
+  string error_message = 3;
+  int32 count = 4;      // Number of documents returned
+}
+
+// Update operations
+message UpdateDocumentRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  Update update = 4;
+  bool upsert = 5;      // Create if not exists
+  bool update_many = 6; // Update multiple documents
+}
+
+message UpdateDocumentResponse {
+  int64 matched_count = 1;
+  int64 modified_count = 2;
+  int64 upserted_count = 3;
+  string upserted_id = 4;
+  bool success = 5;
+  string error_message = 6;
+}
+
+// Delete operations
+message DeleteDocumentRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  bool delete_many = 4; // Delete multiple documents
+}
+
+message DeleteDocumentResponse {
+  int64 deleted_count = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+message DeleteManyRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+}
+
+message DeleteManyResponse {
+  int64 deleted_count = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Count operations
+message CountDocumentsRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+}
+
+message CountDocumentsResponse {
+  int64 count = 1;
+  bool success = 2;
+  string error_message = 3;
+}

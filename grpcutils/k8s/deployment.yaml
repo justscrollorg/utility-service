@@ -20,7 +20,15 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 50051
-          name: grpc
+          name: hello-grpc
+        - containerPort: 50052
+          name: mongo-grpc
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: MONGO_URI
         resources:
           requests:
             memory: "64Mi"
@@ -30,11 +38,11 @@ spec:
             cpu: "100m"
         livenessProbe:
           exec:
-            command: ["/bin/sh", "-c", "nc -z localhost 50051"]
+            command: ["/bin/sh", "-c", "nc -z localhost 50051 && nc -z localhost 50052"]
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           exec:
-            command: ["/bin/sh", "-c", "nc -z localhost 50051"]
+            command: ["/bin/sh", "-c", "nc -z localhost 50051 && nc -z localhost 50052"]
           initialDelaySeconds: 5
           periodSeconds: 5

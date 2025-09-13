@@ -10,22 +10,24 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the server
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./hello/server
+# Build the servers
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o hello-server ./hello/server
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mongo-server ./mongo/server
 
 # Final stage
 FROM alpine:latest
 
-# Install ca-certificates for SSL/TLS
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates for SSL/TLS and netcat for health checks
+RUN apk --no-cache add ca-certificates netcat-openbsd
 
 WORKDIR /root/
 
-# Copy the binary from builder stage
-COPY --from=builder /app/server .
+# Copy the binaries from builder stage
+COPY --from=builder /app/hello-server .
+COPY --from=builder /app/mongo-server .
 
-# Expose gRPC port
-EXPOSE 50051
+# Expose gRPC ports
+EXPOSE 50051 50052
 
-# Run the server
-CMD ["./server"]
+# Run both services using shell
+CMD sh -c './hello-server & ./mongo-server & wait'
