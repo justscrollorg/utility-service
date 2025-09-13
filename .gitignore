@@ -20,6 +20,10 @@ go.work
 # Built executables
 bin/
 dist/
+hello-client
+hello-server
+server
+client
 
 # OS generated files
 .DS_Store

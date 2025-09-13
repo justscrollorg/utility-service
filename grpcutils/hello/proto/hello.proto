@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package hello;
 
-option go_package = "github.com/justscrollorg/utility-service/proto";
+option go_package = "github.com/justscrollorg/utility-service/grpcutils/hello/proto";
 
 // The greeting service definition.
 service Greeter {

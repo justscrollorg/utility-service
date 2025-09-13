@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 
 # Build the server
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./server
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./hello/server
 
 # Final stage
 FROM alpine:latest

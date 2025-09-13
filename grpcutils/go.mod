@@ -1,4 +1,4 @@
-module github.com/justscrollorg/utility-service
+module github.com/justscrollorg/utility-service/grpcutils
 
 go 1.24.1
 
