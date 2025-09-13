@@ -8,13 +8,13 @@ import (
 	"os"
 	"time"
 
+	pb "github.com/justscrollorg/utility-service/grpcutils/mongo/proto"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	pb "github.com/justscrollorg/utility-service/grpcutils/mongo/proto"
 )
 
 const (
@@ -39,12 +39,12 @@ func connectToMongo() (*mongo.Client, error) {
 
 	// Set client options
 	clientOptions := options.Client().ApplyURI(mongoURI)
-	
+
 	// Connect to MongoDB
 	log.Printf("[INFO] Attempting to connect to MongoDB...")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Printf("[ERROR] Failed to connect to MongoDB: %v", err)
@@ -66,7 +66,7 @@ func connectToMongo() (*mongo.Client, error) {
 // ListDatabases implementation
 func (s *mongoServer) ListDatabases(ctx context.Context, req *pb.ListDatabasesRequest) (*pb.ListDatabasesResponse, error) {
 	log.Printf("[REQUEST] ListDatabases called")
-	
+
 	result, err := s.client.ListDatabases(ctx, bson.M{})
 	if err != nil {
 		log.Printf("[ERROR] ListDatabases failed: %v", err)
@@ -96,7 +96,7 @@ func (s *mongoServer) ListDatabases(ctx context.Context, req *pb.ListDatabasesRe
 // ListCollections implementation
 func (s *mongoServer) ListCollections(ctx context.Context, req *pb.ListCollectionsRequest) (*pb.ListCollectionsResponse, error) {
 	log.Printf("[REQUEST] ListCollections called for database: %s", req.Database)
-	
+
 	if req.Database == "" {
 		log.Printf("[ERROR] ListCollections failed: database name is required")
 		return &pb.ListCollectionsResponse{
@@ -120,7 +120,7 @@ func (s *mongoServer) ListCollections(ctx context.Context, req *pb.ListCollectio
 	log.Printf("[INFO] Successfully got collections cursor for database: %s", req.Database)
 	var collections []*pb.CollectionInfo
 	collectionCount := 0
-	
+
 	for cursor.Next(ctx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
@@ -131,7 +131,7 @@ func (s *mongoServer) ListCollections(ctx context.Context, req *pb.ListCollectio
 		name, _ := result["name"].(string)
 		colType, _ := result["type"].(string)
 		log.Printf("[DEBUG] Found collection: %s (type: %s)", name, colType)
-		
+
 		collections = append(collections, &pb.CollectionInfo{
 			Name: name,
 			Type: colType,
@@ -149,7 +149,7 @@ func (s *mongoServer) ListCollections(ctx context.Context, req *pb.ListCollectio
 // InsertDocument implementation
 func (s *mongoServer) InsertDocument(ctx context.Context, req *pb.InsertDocumentRequest) (*pb.InsertDocumentResponse, error) {
 	log.Printf("[REQUEST] InsertDocument called for database: %s, collection: %s", req.Database, req.Collection)
-	
+
 	if req.Database == "" || req.Collection == "" {
 		log.Printf("[ERROR] InsertDocument failed: database and collection names are required")
 		return &pb.InsertDocumentResponse{
@@ -159,7 +159,7 @@ func (s *mongoServer) InsertDocument(ctx context.Context, req *pb.InsertDocument
 	}
 
 	log.Printf("[DEBUG] Document to insert: %s", req.Document.JsonData)
-	
+
 	// Parse JSON document
 	var doc bson.M
 	if err := json.Unmarshal([]byte(req.Document.JsonData), &doc); err != nil {
@@ -183,7 +183,7 @@ func (s *mongoServer) InsertDocument(ctx context.Context, req *pb.InsertDocument
 
 	insertedID := result.InsertedID.(primitive.ObjectID).Hex()
 	log.Printf("[SUCCESS] InsertDocument completed, inserted ID: %s", insertedID)
-	
+
 	return &pb.InsertDocumentResponse{
 		InsertedId: insertedID,
 		Success:    true,
@@ -193,7 +193,7 @@ func (s *mongoServer) InsertDocument(ctx context.Context, req *pb.InsertDocument
 // FindDocuments implementation
 func (s *mongoServer) FindDocuments(ctx context.Context, req *pb.FindDocumentsRequest) (*pb.FindDocumentsResponse, error) {
 	log.Printf("[REQUEST] FindDocuments called for database: %s, collection: %s", req.Database, req.Collection)
-	
+
 	if req.Database == "" || req.Collection == "" {
 		log.Printf("[ERROR] FindDocuments failed: database and collection names are required")
 		return &pb.FindDocumentsResponse{
@@ -221,7 +221,7 @@ func (s *mongoServer) FindDocuments(ctx context.Context, req *pb.FindDocumentsRe
 
 	log.Printf("[INFO] Accessing collection %s.%s", req.Database, req.Collection)
 	collection := s.client.Database(req.Database).Collection(req.Collection)
-	
+
 	// Set up find options
 	findOptions := options.Find()
 	if req.Limit > 0 {
@@ -257,7 +257,7 @@ func (s *mongoServer) FindDocuments(ctx context.Context, req *pb.FindDocumentsRe
 	log.Printf("[INFO] Query successful, processing results...")
 	var documents []*pb.Document
 	docCount := 0
-	
+
 	for cursor.Next(ctx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
@@ -275,7 +275,7 @@ func (s *mongoServer) FindDocuments(ctx context.Context, req *pb.FindDocumentsRe
 			JsonData: string(jsonData),
 		})
 		docCount++
-		
+
 		if docCount <= 3 { // Log first few documents for debugging
 			log.Printf("[DEBUG] Document %d: %s", docCount, string(jsonData))
 		}
@@ -317,12 +317,12 @@ func (s *mongoServer) UpdateDocument(ctx context.Context, req *pb.UpdateDocument
 	}
 
 	collection := s.client.Database(req.Database).Collection(req.Collection)
-	
+
 	updateOptions := options.Update().SetUpsert(req.Upsert)
-	
+
 	var result *mongo.UpdateResult
 	var err error
-	
+
 	if req.UpdateMany {
 		result, err = collection.UpdateMany(ctx, filter, update, updateOptions)
 	} else {
@@ -369,10 +369,10 @@ func (s *mongoServer) DeleteDocument(ctx context.Context, req *pb.DeleteDocument
 	}
 
 	collection := s.client.Database(req.Database).Collection(req.Collection)
-	
+
 	var result *mongo.DeleteResult
 	var err error
-	
+
 	if req.DeleteMany {
 		result, err = collection.DeleteMany(ctx, filter)
 	} else {
@@ -507,7 +507,7 @@ func (s *mongoServer) CountDocuments(ctx context.Context, req *pb.CountDocuments
 func main() {
 	log.Printf("[STARTUP] MongoDB gRPC Server starting...")
 	log.Printf("[STARTUP] Server will listen on port %s", port)
-	
+
 	// Connect to MongoDB
 	log.Printf("[STARTUP] Initializing MongoDB connection...")
 	client, err := connectToMongo()
@@ -536,7 +536,7 @@ func main() {
 	log.Printf("[SUCCESS] MongoDB gRPC server listening at %v", lis.Addr())
 	log.Printf("[INFO] Available services: MongoService with gRPC reflection enabled")
 	log.Printf("[INFO] Ready to accept connections...")
-	
+
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("[FATAL] Failed to serve: %v", err)
 	}

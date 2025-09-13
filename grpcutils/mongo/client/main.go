@@ -8,9 +8,9 @@ import (
 	"log"
 	"time"
 
+	pb "github.com/justscrollorg/utility-service/grpcutils/mongo/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "github.com/justscrollorg/utility-service/grpcutils/mongo/proto"
 )
 
 const (
@@ -45,7 +45,7 @@ func main() {
 		log.Fatalf("[CLIENT ERROR] Failed to connect: %v", err)
 	}
 	defer conn.Close()
-	
+
 	log.Printf("[CLIENT] Connected successfully, creating client...")
 	client := pb.NewMongoServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -128,7 +128,7 @@ func listCollections(ctx context.Context, client pb.MongoServiceClient, database
 func insertDocument(ctx context.Context, client pb.MongoServiceClient, database, collection, document string) {
 	log.Printf("[CLIENT] Calling InsertDocument for %s.%s", database, collection)
 	log.Printf("[CLIENT] Document: %s", document)
-	
+
 	resp, err := client.InsertDocument(ctx, &pb.InsertDocumentRequest{
 		Database:   database,
 		Collection: collection,
@@ -195,7 +195,7 @@ func updateDocument(ctx context.Context, client pb.MongoServiceClient, database,
 		log.Fatalf("UpdateDocument error: %s", resp.ErrorMessage)
 	}
 
-	fmt.Printf("Update result: Matched=%d, Modified=%d, Upserted=%d\n", 
+	fmt.Printf("Update result: Matched=%d, Modified=%d, Upserted=%d\n",
 		resp.MatchedCount, resp.ModifiedCount, resp.UpsertedCount)
 	if resp.UpsertedId != "" {
 		fmt.Printf("Upserted ID: %s\n", resp.UpsertedId)
