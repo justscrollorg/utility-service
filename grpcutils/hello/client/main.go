@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
+	pb "github.com/justscrollorg/utility-service/grpcutils/hello/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "github.com/justscrollorg/utility-service/grpcutils/hello/proto"
 )
 
 const (

@@ -5,9 +5,9 @@ import (
 	"log"
 	"net"
 
+	pb "github.com/justscrollorg/utility-service/grpcutils/hello/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	pb "github.com/justscrollorg/utility-service/grpcutils/hello/proto"
 )
 
 const (
@@ -30,13 +30,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	
+
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &server{})
-	
+
 	// Enable gRPC reflection
 	reflection.Register(s)
-	
+
 	log.Printf("gRPC server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
