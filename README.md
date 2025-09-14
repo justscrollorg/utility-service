@@ -107,3 +107,11 @@ kubectl port-forward -n kafka svc/kafka-ui 8080:8080
 # Command Line Operations
 kubectl exec -it kafka-0 -n kafka -- kafka-topics --bootstrap-server localhost:9092 --list
 
+
+# # Redis
+kubectl run redis-test --rm -i --tty --image redis:7.2-alpine -- redis-cli -h redis.redis -p 6379
+
+# From application code, use:
+# Host: redis.redis
+# Port: 6379
+
