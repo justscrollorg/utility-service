@@ -97,3 +97,13 @@ grpcurl -plaintext -d '{"database":"testdb","collection":"users","filter":{"json
 grpcurl -plaintext -d '{"database":"testdb","collection":"users","filter":{"jsonFilter":"{}"}}' localhost:8081 mongo.MongoService/DeleteMany
 
 grpcurl -plaintext -d '{"database":"testdb","collection":"products","filter":{"jsonFilter":"{}"}}' localhost:8081 mongo.MongoService/DeleteMany
+
+
+# Kafka
+# Kafka UI (Web Interface)
+kubectl port-forward -n kafka svc/kafka-ui 8080:8080
+# Open: http://localhost:8080
+
+# Command Line Operations
+kubectl exec -it kafka-0 -n kafka -- kafka-topics --bootstrap-server localhost:9092 --list
+
