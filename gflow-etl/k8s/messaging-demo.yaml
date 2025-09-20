@@ -80,7 +80,7 @@ metadata:
   labels:
     app: gflow-messaging-demo
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 8081
     targetPort: 8081
