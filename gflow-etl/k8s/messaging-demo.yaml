@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gflow-messaging-demo
+  namespace: default
+  labels:
+    app: gflow-messaging-demo
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gflow-messaging-demo
+  template:
+    metadata:
+      labels:
+        app: gflow-messaging-demo
+        version: v1
+    spec:
+      containers:
+      - name: messaging-demo
+        image: justscrollorg/gflow-etl:latest
+        command: ["./messaging-demo"]
+        ports:
+        - containerPort: 8081
+          name: http
+        env:
+        - name: PORT
+          value: "8081"
+        - name: GFLOW_KAFKA_BROKERS
+          value: "kafka-service:9092"
+        - name: GFLOW_CLICKHOUSE_HOST
+          value: "139.144.181.164"
+        - name: GFLOW_CLICKHOUSE_PORT
+          value: "9000"
+        - name: GFLOW_CLICKHOUSE_DATABASE
+          value: "gflow"
+        - name: GFLOW_CLICKHOUSE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-secret
+              key: username
+        - name: GFLOW_CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-secret
+              key: password
+        - name: GFLOW_REDIS_HOST
+          value: "redis-service"
+        - name: GFLOW_REDIS_PORT
+          value: "6379"
+        - name: GFLOW_REDIS_DB
+          value: "0"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gflow-messaging-demo-service
+  namespace: default
+  labels:
+    app: gflow-messaging-demo
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: http
+  selector:
+    app: gflow-messaging-demo
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gflow-messaging-demo-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: messaging-demo.gflow.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gflow-messaging-demo-service
+            port:
+              number: 8081
