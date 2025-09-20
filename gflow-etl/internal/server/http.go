@@ -135,11 +135,26 @@ func (s *HTTPServer) setupRoutes() {
 
 	// Serve static files for UI (if available)
 	s.router.Static("/static", "./web/static")
-	s.router.LoadHTMLGlob("web/templates/*")
-
-	// Simple web UI
-	s.router.GET("/", s.indexPage)
-	s.router.GET("/ui", s.uiPage)
+	
+	// Load templates if they exist (optional for API-only mode)
+	if _, err := os.Stat("web/templates"); err == nil {
+		s.router.LoadHTMLGlob("web/templates/*")
+		// Simple web UI (only if templates exist)
+		s.router.GET("/", s.indexPage)
+		s.router.GET("/ui", s.uiPage)
+	} else {
+		// API-only mode - redirect root to API documentation
+		s.router.GET("/", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"service": "GFlow ETL",
+				"version": "1.0.0",
+				"status":  "running",
+				"api":     "/api/v1",
+				"health":  "/health",
+				"metrics": "/metrics",
+			})
+		})
+	}
 }
 
 // Health check endpoint

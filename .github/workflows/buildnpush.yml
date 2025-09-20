@@ -1,7 +1,17 @@
-name: Build and Push Utility Service
+name: Build and Push Utility Services
 
 on:
   workflow_dispatch:
+    inputs:
+      service:
+        description: 'Which service to build'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+        - both
+        - grpcutils
+        - gflow-etl
 
 jobs:
   build-test-push:
@@ -16,7 +26,9 @@ jobs:
         with:
           go-version: '1.24.1'
           cache: true
-          cache-dependency-path: grpcutils/go.sum
+          cache-dependency-path: |
+            grpcutils/go.sum
+            gflow-etl/go.sum
       
       - name: Setup protoc
         uses: arduino/setup-protoc@v3
@@ -28,7 +40,8 @@ jobs:
           go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
       
-      - name: Generate protobuf & test
+      - name: Generate protobuf & test grpcutils
+        if: github.event.inputs.service == 'grpcutils' || github.event.inputs.service == 'both'
         working-directory: ./grpcutils
         run: |
           protoc --go_out=. --go_opt=paths=source_relative \
@@ -36,13 +49,27 @@ jobs:
                  hello/proto/hello.proto
           go test -v ./...
       
+      - name: Test gflow-etl
+        if: github.event.inputs.service == 'gflow-etl' || github.event.inputs.service == 'both'
+        working-directory: ./gflow-etl
+        run: |
+          go mod tidy
+          go test -v ./...
+      
       - name: Log in to Docker Hub
         if: github.event_name != 'pull_request'
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
       
-      - name: Build and Push Docker Image
-        if: github.event_name != 'pull_request'
+      - name: Build and Push grpcutils Docker Image
+        if: (github.event.inputs.service == 'grpcutils' || github.event.inputs.service == 'both') && github.event_name != 'pull_request'
         working-directory: ./grpcutils
         run: |
           docker build -t justscroll/grpcutils:latest .
           docker push justscroll/grpcutils:latest
+      
+      - name: Build and Push gflow-etl Docker Image
+        if: (github.event.inputs.service == 'gflow-etl' || github.event.inputs.service == 'both') && github.event_name != 'pull_request'
+        working-directory: ./gflow-etl
+        run: |
+          docker build -t justscroll/gflow-etl:latest .
+          docker push justscroll/gflow-etl:latest
