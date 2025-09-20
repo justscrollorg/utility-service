@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -135,7 +136,7 @@ func (s *HTTPServer) setupRoutes() {
 
 	// Serve static files for UI (if available)
 	s.router.Static("/static", "./web/static")
-	
+
 	// Load templates if they exist (optional for API-only mode)
 	if _, err := os.Stat("web/templates"); err == nil {
 		s.router.LoadHTMLGlob("web/templates/*")
