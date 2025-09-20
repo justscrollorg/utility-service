@@ -25,7 +25,7 @@ type MessagingServer struct {
 
 func NewMessagingServer(cfg *config.Config) (*MessagingServer, error) {
 	logger := logrus.New()
-	
+
 	// Initialize demos
 	msgDemo, err := demo.NewMessagingDemo(cfg.Kafka.Brokers)
 	if err != nil {
@@ -33,7 +33,7 @@ func NewMessagingServer(cfg *config.Config) (*MessagingServer, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	router := gin.Default()
 	server := &MessagingServer{
 		router:  router,
@@ -60,7 +60,7 @@ func (s *MessagingServer) setupRoutes() {
 	// Streaming ETL demo (refers to main service)
 	s.router.GET("/streaming/info", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"message":     "Streaming ETL demo available on main service",
+			"message":      "Streaming ETL demo available on main service",
 			"main_service": "http://localhost:8080",
 			"endpoints": gin.H{
 				"start_demo":      "POST /demo/start",
@@ -76,7 +76,7 @@ func (s *MessagingServer) setupRoutes() {
 	s.router.POST("/messaging/queue/start", func(c *gin.Context) {
 		go s.msgDemo.StartMessageQueueDemo(s.ctx)
 		s.logger.Info("Started message queue demo")
-		
+
 		c.JSON(http.StatusOK, gin.H{
 			"message":     "Message queue demo started",
 			"pattern":     "async task processing",
@@ -89,7 +89,7 @@ func (s *MessagingServer) setupRoutes() {
 	s.router.POST("/messaging/pubsub/start", func(c *gin.Context) {
 		go s.msgDemo.StartPubSubDemo(s.ctx)
 		s.logger.Info("Started pub-sub demo")
-		
+
 		c.JSON(http.StatusOK, gin.H{
 			"message":     "Pub-Sub demo started",
 			"pattern":     "event publishing and subscription",
@@ -102,7 +102,7 @@ func (s *MessagingServer) setupRoutes() {
 	s.router.POST("/messaging/saga/start", func(c *gin.Context) {
 		go s.msgDemo.StartSagaDemo(s.ctx)
 		s.logger.Info("Started saga demo")
-		
+
 		c.JSON(http.StatusOK, gin.H{
 			"message":     "Saga demo started",
 			"pattern":     "distributed transaction coordination",
@@ -115,7 +115,7 @@ func (s *MessagingServer) setupRoutes() {
 	s.router.POST("/messaging/stop", func(c *gin.Context) {
 		s.msgDemo.Stop()
 		s.logger.Info("Stopped all demos")
-		
+
 		c.JSON(http.StatusOK, gin.H{
 			"message": "All messaging demos stopped",
 		})
@@ -124,7 +124,7 @@ func (s *MessagingServer) setupRoutes() {
 	// Get messaging statistics
 	s.router.GET("/messaging/stats", func(c *gin.Context) {
 		msgStats := s.msgDemo.GetDemoStats()
-		
+
 		c.JSON(http.StatusOK, gin.H{
 			"messaging": msgStats,
 			"kafka_patterns": gin.H{
@@ -182,8 +182,8 @@ func (s *MessagingServer) setupRoutes() {
 				},
 			},
 			"comparison": gin.H{
-				"event_streaming":     "Best for real-time processing of continuous data streams",
-				"message_queues":      "Best for reliable asynchronous task processing",
+				"event_streaming":    "Best for real-time processing of continuous data streams",
+				"message_queues":     "Best for reliable asynchronous task processing",
 				"pub_sub":            "Best for loosely coupled event-driven architectures",
 				"saga_orchestration": "Best for complex multi-service transactions requiring coordination",
 			},
@@ -225,7 +225,7 @@ func main() {
 		if port == "" {
 			port = "8081" // Different port from main ETL service
 		}
-		
+
 		if err := server.Start(port); err != nil && err != http.ErrServerClosed {
 			log.Printf("Server error: %v", err)
 		}
@@ -236,7 +236,7 @@ func main() {
 	log.Println("  GET  /kafka/patterns - Overview of Kafka patterns")
 	log.Println("  GET  /streaming/info - Streaming ETL info (main service)")
 	log.Println("  POST /messaging/queue/start - Start message queue demo")
-	log.Println("  POST /messaging/pubsub/start - Start pub-sub demo") 
+	log.Println("  POST /messaging/pubsub/start - Start pub-sub demo")
 	log.Println("  POST /messaging/saga/start - Start saga demo")
 	log.Println("  POST /messaging/stop - Stop all demos")
 	log.Println("  GET  /messaging/stats - Get demo statistics")

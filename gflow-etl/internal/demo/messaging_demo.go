@@ -22,7 +22,7 @@ type MessagingDemo struct {
 // NewMessagingDemo creates a new messaging patterns demo
 func NewMessagingDemo(kafkaBrokers []string) (*MessagingDemo, error) {
 	logger := logrus.New()
-	
+
 	return &MessagingDemo{
 		logger:   logger,
 		stopChan: make(chan struct{}),
@@ -32,15 +32,15 @@ func NewMessagingDemo(kafkaBrokers []string) (*MessagingDemo, error) {
 // StartMessageQueueDemo demonstrates async task processing
 func (md *MessagingDemo) StartMessageQueueDemo(ctx context.Context) error {
 	md.logger.Info("Starting Message Queue Demo...")
-	
+
 	// Simulate various task types
 	tasks := []struct {
 		taskType string
 		payload  map[string]interface{}
 	}{
 		{"send-email", map[string]interface{}{
-			"to":      "user@example.com",
-			"subject": "Welcome to our platform",
+			"to":       "user@example.com",
+			"subject":  "Welcome to our platform",
 			"template": "welcome",
 		}},
 		{"process-payment", map[string]interface{}{
@@ -49,9 +49,9 @@ func (md *MessagingDemo) StartMessageQueueDemo(ctx context.Context) error {
 			"method":   "credit_card",
 		}},
 		{"generate-report", map[string]interface{}{
-			"type":     "monthly",
-			"user_id":  "12345",
-			"format":   "pdf",
+			"type":    "monthly",
+			"user_id": "12345",
+			"format":  "pdf",
 		}},
 		{"resize-image", map[string]interface{}{
 			"image_url": "https://example.com/image.jpg",
@@ -84,7 +84,7 @@ func (md *MessagingDemo) StartMessageQueueDemo(ctx context.Context) error {
 // StartPubSubDemo demonstrates event publishing and subscription
 func (md *MessagingDemo) StartPubSubDemo(ctx context.Context) error {
 	md.logger.Info("Starting Pub-Sub Demo...")
-	
+
 	events := []struct {
 		eventType string
 		source    string
@@ -97,9 +97,9 @@ func (md *MessagingDemo) StartPubSubDemo(ctx context.Context) error {
 			"tier":  "premium",
 		}},
 		{"order.placed", "order-service", "order-456", map[string]interface{}{
-			"amount":    199.99,
-			"items":     3,
-			"user_id":   "user-123",
+			"amount":  199.99,
+			"items":   3,
+			"user_id": "user-123",
 		}},
 		{"payment.completed", "payment-service", "payment-789", map[string]interface{}{
 			"amount":   199.99,
@@ -137,7 +137,7 @@ func (md *MessagingDemo) StartPubSubDemo(ctx context.Context) error {
 // StartSagaDemo demonstrates distributed transaction patterns
 func (md *MessagingDemo) StartSagaDemo(ctx context.Context) error {
 	md.logger.Info("Starting Saga Demo...")
-	
+
 	// Example: E-commerce order processing saga
 	orderSagaSteps := []messaging.SagaStep{
 		{

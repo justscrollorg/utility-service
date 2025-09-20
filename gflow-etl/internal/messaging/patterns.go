@@ -199,23 +199,23 @@ type SagaOrchestrator struct {
 
 // SagaInstance represents a running saga
 type SagaInstance struct {
-	ID            string                 `json:"id"`
-	Type          string                 `json:"type"`
-	Status        string                 `json:"status"` // "running", "completed", "failed", "compensating"
-	CurrentStep   int                    `json:"current_step"`
-	Steps         []SagaStep             `json:"steps"`
-	Context       map[string]interface{} `json:"context"`
-	StartTime     time.Time              `json:"start_time"`
-	LastUpdated   time.Time              `json:"last_updated"`
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"`
+	Status      string                 `json:"status"` // "running", "completed", "failed", "compensating"
+	CurrentStep int                    `json:"current_step"`
+	Steps       []SagaStep             `json:"steps"`
+	Context     map[string]interface{} `json:"context"`
+	StartTime   time.Time              `json:"start_time"`
+	LastUpdated time.Time              `json:"last_updated"`
 }
 
 // SagaStep represents a step in a saga
 type SagaStep struct {
-	Name            string                 `json:"name"`
-	Command         string                 `json:"command"`
-	CompensateWith  string                 `json:"compensate_with"`
-	Parameters      map[string]interface{} `json:"parameters"`
-	Status          string                 `json:"status"` // "pending", "completed", "failed"
+	Name           string                 `json:"name"`
+	Command        string                 `json:"command"`
+	CompensateWith string                 `json:"compensate_with"`
+	Parameters     map[string]interface{} `json:"parameters"`
+	Status         string                 `json:"status"` // "pending", "completed", "failed"
 }
 
 // StartSaga initiates a new saga transaction
