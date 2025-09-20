@@ -34,31 +34,65 @@ spec:
         - containerPort: 9090
           name: metrics
         env:
+        # Kafka Configuration
         - name: GFLOW_KAFKA_BROKERS
           value: "kafka.kafka.svc.cluster.local:9092"
         - name: GFLOW_KAFKA_CONSUMER_GROUP
           value: "gflow-etl-prod"
+        - name: GFLOW_KAFKA_BATCH_SIZE
+          value: "5000"
+        
+        # ClickHouse Configuration - using existing cluster secret
         - name: GFLOW_CLICKHOUSE_HOST
           valueFrom:
             secretKeyRef:
-              name: clickhouse-secret
-              key: CLICKHOUSE_HOST
+              name: clickhouse-credentials
+              key: host
+        - name: GFLOW_CLICKHOUSE_PORT
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-credentials
+              key: native-port
+        - name: GFLOW_CLICKHOUSE_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-credentials
+              key: database
+        - name: GFLOW_CLICKHOUSE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-credentials
+              key: username
         - name: GFLOW_CLICKHOUSE_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: clickhouse-secret
-              key: CLICKHOUSE_PASSWORD
+              name: clickhouse-credentials
+              key: password
+        - name: GFLOW_CLICKHOUSE_TLS
+          value: "true"
+        - name: GFLOW_CLICKHOUSE_BATCH_SIZE
+          value: "50000"
+        - name: GFLOW_CLICKHOUSE_MAX_RETRIES
+          value: "5"
+        
+        # Redis Configuration - using existing cluster service
         - name: GFLOW_REDIS_HOST
-          value: "redis.default.svc.cluster.local"
-        - name: GFLOW_REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: redis-secret
-              key: REDIS_PASSWORD
-              optional: true
+          value: "redis.redis.svc.cluster.local"
+        - name: GFLOW_REDIS_PORT
+          value: "6379"
+        - name: GFLOW_REDIS_DATABASE
+          value: "0"
+        - name: GFLOW_REDIS_POOL_SIZE
+          value: "20"
+        
+        # Demo and Monitoring
+        - name: GFLOW_DEMO_ENABLED
+          value: "true"
+        - name: GFLOW_DEMO_DATA_RATE
+          value: "500"
         - name: GFLOW_MONITORING_LOG_LEVEL
           value: "info"
-        - name: GFLOW_DEMO_ENABLED
+        - name: GFLOW_MONITORING_ENABLED
           value: "true"
         resources:
           requests:
@@ -128,29 +162,30 @@ data:
     kafka:
       brokers:
         - kafka.kafka.svc.cluster.local:9092
-      consumer_group: gflow-etl
-      batch_size: 1000
+      consumer_group: gflow-etl-prod
+      batch_size: 5000
       flush_interval: 5s
     
     clickhouse:
-      host: "{{ .Values.clickhouse.host | default "clickhouse.default.svc.cluster.local" }}"
+      host: clickhouse.default.svc.cluster.local
       port: 9000
       database: default
       username: default
-      batch_size: 10000
+      tls: true
+      batch_size: 50000
       flush_timeout: 10s
-      max_retries: 3
+      max_retries: 5
     
     redis:
       host: redis.default.svc.cluster.local
       port: 6379
       database: 0
-      pool_size: 10
+      pool_size: 20
     
     demo:
       enabled: true
       generate_data: true
-      data_rate: 100
+      data_rate: 500
       generate_users: 1000
       session_window: 1h
       duplicate_ratio: 0.1
@@ -160,20 +195,5 @@ data:
       metrics_port: 9090
       log_level: info
 ---
-# Secrets for external services
-apiVersion: v1
-kind: Secret
-metadata:
-  name: clickhouse-secret
-type: Opaque
-stringData:
-  CLICKHOUSE_HOST: "your-clickhouse-host"
-  CLICKHOUSE_PASSWORD: "your-clickhouse-password"
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: redis-secret
-type: Opaque
-stringData:
-  REDIS_PASSWORD: "your-redis-password"
+# Note: The clickhouse-credentials secret should be copied from the clickhouse namespace
+# using the command mentioned in the header comments above
