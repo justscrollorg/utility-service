@@ -80,9 +80,11 @@ metadata:
   labels:
     app: gflow-messaging-demo
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
   - port: 8081
+    targetPort: 8081
+    nodePort: 30081
     targetPort: 8081
     protocol: TCP
     name: http
