@@ -14,54 +14,54 @@ import (
 // BatchSink handles optimized batch inserts to ClickHouse
 // Similar to GlassFlow's ClickHouse sink with batching
 type BatchSink struct {
-	conn        clickhouse.Conn
-	logger      *logrus.Logger
-	tableName   string
-	batchSize   int
-	flushTimer  time.Duration
-	maxRetries  int
-	
+	conn       clickhouse.Conn
+	logger     *logrus.Logger
+	tableName  string
+	batchSize  int
+	flushTimer time.Duration
+	maxRetries int
+
 	// Batching state
 	batch       []map[string]interface{}
 	batchMutex  sync.Mutex
 	flushTicker *time.Ticker
 	stopChan    chan struct{}
-	
+
 	// Metrics
-	metrics     *SinkMetrics
+	metrics      *SinkMetrics
 	metricsMutex sync.RWMutex
 }
 
 // SinkMetrics tracks ClickHouse sink performance
 type SinkMetrics struct {
-	EventsReceived    int64
-	EventsBatched     int64
-	BatchesFlushed    int64
-	EventsInserted    int64
-	InsertErrors      int64
-	RetryCount        int64
-	FlushTimeouts     int64
-	AvgBatchSize      float64
-	AvgFlushDuration  time.Duration
-	LastFlushTime     time.Time
-	ConnectionErrors  int64
+	EventsReceived   int64
+	EventsBatched    int64
+	BatchesFlushed   int64
+	EventsInserted   int64
+	InsertErrors     int64
+	RetryCount       int64
+	FlushTimeouts    int64
+	AvgBatchSize     float64
+	AvgFlushDuration time.Duration
+	LastFlushTime    time.Time
+	ConnectionErrors int64
 }
 
 // BatchConfig configures batching behavior
 type BatchConfig struct {
-	MaxBatchSize   int           `json:"max_batch_size"`
-	FlushInterval  time.Duration `json:"flush_interval"`
-	MaxRetries     int           `json:"max_retries"`
-	RetryDelay     time.Duration `json:"retry_delay"`
+	MaxBatchSize  int           `json:"max_batch_size"`
+	FlushInterval time.Duration `json:"flush_interval"`
+	MaxRetries    int           `json:"max_retries"`
+	RetryDelay    time.Duration `json:"retry_delay"`
 }
 
 // TableSchema represents the ClickHouse table structure
 type TableSchema struct {
-	Name    string                 `json:"name"`
-	Columns map[string]ColumnType  `json:"columns"`
-	Engine  string                 `json:"engine"`
-	OrderBy []string               `json:"order_by"`
-	TTL     string                 `json:"ttl,omitempty"`
+	Name    string                `json:"name"`
+	Columns map[string]ColumnType `json:"columns"`
+	Engine  string                `json:"engine"`
+	OrderBy []string              `json:"order_by"`
+	TTL     string                `json:"ttl,omitempty"`
 }
 
 // ColumnType represents a ClickHouse column type
@@ -77,15 +77,15 @@ func NewBatchSink(conn clickhouse.Conn, tableName string, config BatchConfig) *B
 	logger.SetLevel(logrus.InfoLevel)
 
 	sink := &BatchSink{
-		conn:        conn,
-		logger:      logger,
-		tableName:   tableName,
-		batchSize:   config.MaxBatchSize,
-		flushTimer:  config.FlushInterval,
-		maxRetries:  config.MaxRetries,
-		batch:       make([]map[string]interface{}, 0, config.MaxBatchSize),
-		stopChan:    make(chan struct{}),
-		metrics:     &SinkMetrics{},
+		conn:       conn,
+		logger:     logger,
+		tableName:  tableName,
+		batchSize:  config.MaxBatchSize,
+		flushTimer: config.FlushInterval,
+		maxRetries: config.MaxRetries,
+		batch:      make([]map[string]interface{}, 0, config.MaxBatchSize),
+		stopChan:   make(chan struct{}),
+		metrics:    &SinkMetrics{},
 	}
 
 	// Start flush timer
@@ -101,7 +101,7 @@ func (s *BatchSink) WriteEvent(ctx context.Context, event map[string]interface{}
 
 	// Add event to batch
 	s.batch = append(s.batch, event)
-	
+
 	s.metricsMutex.Lock()
 	s.metrics.EventsReceived++
 	s.metrics.EventsBatched++
@@ -149,7 +149,7 @@ func (s *BatchSink) flushBatch(ctx context.Context) error {
 			// Exponential backoff
 			backoffDelay := time.Duration(attempt*attempt) * time.Second
 			time.Sleep(backoffDelay)
-			
+
 			s.metricsMutex.Lock()
 			s.metrics.RetryCount++
 			s.metricsMutex.Unlock()
@@ -159,7 +159,7 @@ func (s *BatchSink) flushBatch(ctx context.Context) error {
 		if err == nil {
 			// Success
 			flushDuration := time.Since(startTime)
-			
+
 			s.metricsMutex.Lock()
 			s.metrics.BatchesFlushed++
 			s.metrics.EventsInserted += int64(batchSize)
@@ -207,7 +207,7 @@ func (s *BatchSink) executeBatchInsert(ctx context.Context, batch []map[string]i
 	// Build dynamic insert query based on first event structure
 	columns := make([]string, 0)
 	placeholders := make([]string, 0)
-	
+
 	for column := range batch[0] {
 		columns = append(columns, column)
 		placeholders = append(placeholders, "?")
@@ -273,7 +273,7 @@ func (s *BatchSink) convertValue(value interface{}) interface{} {
 // startFlushTimer starts the periodic flush timer
 func (s *BatchSink) startFlushTimer() {
 	s.flushTicker = time.NewTicker(s.flushTimer)
-	
+
 	go func() {
 		for {
 			select {
@@ -344,42 +344,42 @@ func (s *BatchSink) CreateTable(ctx context.Context, schema TableSchema) error {
 func (s *BatchSink) GetMetrics() *SinkMetrics {
 	s.metricsMutex.RLock()
 	defer s.metricsMutex.RUnlock()
-	
+
 	return &SinkMetrics{
-		EventsReceived:    s.metrics.EventsReceived,
-		EventsBatched:     s.metrics.EventsBatched,
-		BatchesFlushed:    s.metrics.BatchesFlushed,
-		EventsInserted:    s.metrics.EventsInserted,
-		InsertErrors:      s.metrics.InsertErrors,
-		RetryCount:        s.metrics.RetryCount,
-		FlushTimeouts:     s.metrics.FlushTimeouts,
-		AvgBatchSize:      s.metrics.AvgBatchSize,
-		AvgFlushDuration:  s.metrics.AvgFlushDuration,
-		LastFlushTime:     s.metrics.LastFlushTime,
-		ConnectionErrors:  s.metrics.ConnectionErrors,
+		EventsReceived:   s.metrics.EventsReceived,
+		EventsBatched:    s.metrics.EventsBatched,
+		BatchesFlushed:   s.metrics.BatchesFlushed,
+		EventsInserted:   s.metrics.EventsInserted,
+		InsertErrors:     s.metrics.InsertErrors,
+		RetryCount:       s.metrics.RetryCount,
+		FlushTimeouts:    s.metrics.FlushTimeouts,
+		AvgBatchSize:     s.metrics.AvgBatchSize,
+		AvgFlushDuration: s.metrics.AvgFlushDuration,
+		LastFlushTime:    s.metrics.LastFlushTime,
+		ConnectionErrors: s.metrics.ConnectionErrors,
 	}
 }
 
 // GetStats returns summary statistics
 func (s *BatchSink) GetStats() map[string]interface{} {
 	metrics := s.GetMetrics()
-	
+
 	successRate := float64(100)
 	if metrics.EventsReceived > 0 {
 		successRate = float64(metrics.EventsInserted) / float64(metrics.EventsReceived) * 100
 	}
-	
+
 	return map[string]interface{}{
-		"events_received":     metrics.EventsReceived,
-		"events_inserted":     metrics.EventsInserted,
-		"batches_flushed":     metrics.BatchesFlushed,
+		"events_received":      metrics.EventsReceived,
+		"events_inserted":      metrics.EventsInserted,
+		"batches_flushed":      metrics.BatchesFlushed,
 		"success_rate_percent": successRate,
-		"avg_batch_size":      metrics.AvgBatchSize,
-		"avg_flush_duration":  metrics.AvgFlushDuration.String(),
-		"last_flush_time":     metrics.LastFlushTime,
-		"error_count":         metrics.InsertErrors,
-		"retry_count":         metrics.RetryCount,
-		"pending_events":      len(s.batch),
+		"avg_batch_size":       metrics.AvgBatchSize,
+		"avg_flush_duration":   metrics.AvgFlushDuration.String(),
+		"last_flush_time":      metrics.LastFlushTime,
+		"error_count":          metrics.InsertErrors,
+		"retry_count":          metrics.RetryCount,
+		"pending_events":       len(s.batch),
 	}
 }
 
@@ -387,30 +387,30 @@ func (s *BatchSink) GetStats() map[string]interface{} {
 func (s *BatchSink) ResetMetrics() {
 	s.metricsMutex.Lock()
 	defer s.metricsMutex.Unlock()
-	
+
 	s.metrics = &SinkMetrics{}
 }
 
 // Close gracefully shuts down the sink
 func (s *BatchSink) Close(ctx context.Context) error {
 	s.logger.Info("Shutting down ClickHouse sink...")
-	
+
 	// Stop flush timer
 	if s.flushTicker != nil {
 		s.flushTicker.Stop()
 	}
 	close(s.stopChan)
-	
+
 	// Flush any remaining events
 	if err := s.ForceFlush(ctx); err != nil {
 		s.logger.WithError(err).Error("Failed to flush remaining events during shutdown")
 	}
-	
+
 	// Close ClickHouse connection
 	if err := s.conn.Close(); err != nil {
 		return fmt.Errorf("failed to close ClickHouse connection: %w", err)
 	}
-	
+
 	s.logger.Info("ClickHouse sink shutdown complete")
 	return nil
 }
@@ -421,14 +421,14 @@ func CreateDemoTables(ctx context.Context, conn clickhouse.Conn) error {
 		{
 			Name: "user_sessions_clean",
 			Columns: map[string]ColumnType{
-				"session_id":    {Type: "String", Nullable: false},
-				"user_id":       {Type: "String", Nullable: false},
-				"timestamp":     {Type: "DateTime", Nullable: false},
-				"page_url":      {Type: "String", Nullable: true},
-				"user_agent":    {Type: "String", Nullable: true},
-				"ip_address":    {Type: "String", Nullable: true},
+				"session_id":       {Type: "String", Nullable: false},
+				"user_id":          {Type: "String", Nullable: false},
+				"timestamp":        {Type: "DateTime", Nullable: false},
+				"page_url":         {Type: "String", Nullable: true},
+				"user_agent":       {Type: "String", Nullable: true},
+				"ip_address":       {Type: "String", Nullable: true},
 				"session_duration": {Type: "UInt32", Nullable: true},
-				"page_views":    {Type: "UInt16", Nullable: true, Default: "1"},
+				"page_views":       {Type: "UInt16", Nullable: true, Default: "1"},
 			},
 			Engine:  "MergeTree()",
 			OrderBy: []string{"timestamp", "session_id"},
@@ -445,10 +445,10 @@ func CreateDemoTables(ctx context.Context, conn clickhouse.Conn) error {
 				"merchant_name":  {Type: "String", Nullable: true},
 				"category":       {Type: "String", Nullable: true},
 				// User profile data from join
-				"user_name":      {Type: "String", Nullable: true},
-				"user_email":     {Type: "String", Nullable: true},
-				"user_tier":      {Type: "String", Nullable: true},
-				"user_country":   {Type: "String", Nullable: true},
+				"user_name":    {Type: "String", Nullable: true},
+				"user_email":   {Type: "String", Nullable: true},
+				"user_tier":    {Type: "String", Nullable: true},
+				"user_country": {Type: "String", Nullable: true},
 			},
 			Engine:  "MergeTree()",
 			OrderBy: []string{"timestamp", "user_id"},
@@ -457,16 +457,16 @@ func CreateDemoTables(ctx context.Context, conn clickhouse.Conn) error {
 		{
 			Name: "real_time_analytics",
 			Columns: map[string]ColumnType{
-				"event_id":       {Type: "String", Nullable: false},
-				"event_type":     {Type: "String", Nullable: false},
-				"timestamp":      {Type: "DateTime", Nullable: false},
-				"user_id":        {Type: "String", Nullable: true},
-				"session_id":     {Type: "String", Nullable: true},
-				"properties":     {Type: "String", Nullable: true}, // JSON string
-				"device_type":    {Type: "String", Nullable: true},
-				"platform":       {Type: "String", Nullable: true},
-				"country":        {Type: "String", Nullable: true},
-				"value":          {Type: "Float64", Nullable: true},
+				"event_id":    {Type: "String", Nullable: false},
+				"event_type":  {Type: "String", Nullable: false},
+				"timestamp":   {Type: "DateTime", Nullable: false},
+				"user_id":     {Type: "String", Nullable: true},
+				"session_id":  {Type: "String", Nullable: true},
+				"properties":  {Type: "String", Nullable: true}, // JSON string
+				"device_type": {Type: "String", Nullable: true},
+				"platform":    {Type: "String", Nullable: true},
+				"country":     {Type: "String", Nullable: true},
+				"value":       {Type: "Float64", Nullable: true},
 			},
 			Engine:  "MergeTree()",
 			OrderBy: []string{"timestamp", "event_type"},

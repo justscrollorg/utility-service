@@ -35,17 +35,17 @@ type Metrics struct {
 // Event represents a data event with metadata
 type Event struct {
 	ID        string                 `json:"id"`
-	Timestamp time.Time             `json:"timestamp"`
+	Timestamp time.Time              `json:"timestamp"`
 	Data      map[string]interface{} `json:"data"`
 	Source    string                 `json:"source"`
 }
 
 // DedupResult represents the result of deduplication processing
 type DedupResult struct {
-	Event       *Event `json:"event"`
-	IsDuplicate bool   `json:"is_duplicate"`
+	Event       *Event    `json:"event"`
+	IsDuplicate bool      `json:"is_duplicate"`
 	FirstSeen   time.Time `json:"first_seen"`
-	KeyValue    string `json:"key_value"`
+	KeyValue    string    `json:"key_value"`
 }
 
 // NewEngine creates a new deduplication engine
@@ -77,7 +77,7 @@ func (e *Engine) ProcessEvent(ctx context.Context, event *Event) (*DedupResult, 
 
 	// Generate Redis key with time-based expiration
 	redisKey := e.generateRedisKey(keyValue)
-	
+
 	// Check if we've seen this key within the time window
 	isDuplicate, firstSeen, err := e.checkDuplicate(ctx, redisKey, event.Timestamp)
 	if err != nil {
@@ -116,19 +116,19 @@ func (e *Engine) ProcessEvent(ctx context.Context, event *Event) (*DedupResult, 
 // ProcessBatch processes multiple events in batch for better performance
 func (e *Engine) ProcessBatch(ctx context.Context, events []*Event) ([]*DedupResult, error) {
 	results := make([]*DedupResult, 0, len(events))
-	
+
 	// Process events in parallel for better throughput
 	resultsChan := make(chan *DedupResult, len(events))
 	errorsChan := make(chan error, len(events))
-	
+
 	// Use worker pool pattern similar to GlassFlow
 	numWorkers := 10
 	if len(events) < numWorkers {
 		numWorkers = len(events)
 	}
-	
+
 	eventsChan := make(chan *Event, len(events))
-	
+
 	// Start workers
 	var wg sync.WaitGroup
 	for i := 0; i < numWorkers; i++ {
@@ -145,7 +145,7 @@ func (e *Engine) ProcessBatch(ctx context.Context, events []*Event) ([]*DedupRes
 			}
 		}()
 	}
-	
+
 	// Send events to workers
 	go func() {
 		defer close(eventsChan)
@@ -153,19 +153,19 @@ func (e *Engine) ProcessBatch(ctx context.Context, events []*Event) ([]*DedupRes
 			eventsChan <- event
 		}
 	}()
-	
+
 	// Wait for workers to finish
 	go func() {
 		wg.Wait()
 		close(resultsChan)
 		close(errorsChan)
 	}()
-	
+
 	// Collect results
 	for result := range resultsChan {
 		results = append(results, result)
 	}
-	
+
 	// Check for errors
 	select {
 	case err := <-errorsChan:
@@ -290,7 +290,7 @@ func (e *Engine) CleanupExpiredKeys(ctx context.Context) error {
 func (e *Engine) GetMetrics() *Metrics {
 	e.mutex.RLock()
 	defer e.mutex.RUnlock()
-	
+
 	// Return a copy to avoid race conditions
 	return &Metrics{
 		EventsProcessed:   e.metrics.EventsProcessed,
@@ -307,7 +307,7 @@ func (e *Engine) GetMetrics() *Metrics {
 func (e *Engine) ResetMetrics() {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
-	
+
 	e.metrics = &Metrics{}
 }
 
@@ -318,11 +318,11 @@ func (e *Engine) SetTimeWindow(timeWindow time.Duration) {
 	if timeWindow > maxWindow {
 		timeWindow = maxWindow
 	}
-	
+
 	e.mutex.Lock()
 	e.timeWindow = timeWindow
 	e.mutex.Unlock()
-	
+
 	e.logger.WithField("time_window", timeWindow).Info("Updated deduplication time window")
 }
 

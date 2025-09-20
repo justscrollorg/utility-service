@@ -26,21 +26,21 @@ type TemporalJoinEngine struct {
 
 // JoinMetrics tracks join performance
 type JoinMetrics struct {
-	LeftEventsProcessed   int64
-	RightEventsProcessed  int64
-	SuccessfulJoins       int64
-	OrphanedLeftEvents    int64
-	OrphanedRightEvents   int64
-	LateArrivals          int64
-	WindowCleanups        int64
-	ErrorCount            int64
-	StateStoreSize        int64
+	LeftEventsProcessed  int64
+	RightEventsProcessed int64
+	SuccessfulJoins      int64
+	OrphanedLeftEvents   int64
+	OrphanedRightEvents  int64
+	LateArrivals         int64
+	WindowCleanups       int64
+	ErrorCount           int64
+	StateStoreSize       int64
 }
 
 // StreamEvent represents an event from either left or right stream
 type StreamEvent struct {
 	ID        string                 `json:"id"`
-	Timestamp time.Time             `json:"timestamp"`
+	Timestamp time.Time              `json:"timestamp"`
 	Data      map[string]interface{} `json:"data"`
 	Source    string                 `json:"source"` // "left" or "right"
 	JoinKey   string                 `json:"join_key"`
@@ -48,22 +48,22 @@ type StreamEvent struct {
 
 // JoinedEvent represents the result of joining two events
 type JoinedEvent struct {
-	ID         string                 `json:"id"`
-	Timestamp  time.Time             `json:"timestamp"`
-	LeftData   map[string]interface{} `json:"left_data"`
-	RightData  map[string]interface{} `json:"right_data"`
-	JoinKey    string                 `json:"join_key"`
-	LeftTime   time.Time             `json:"left_time"`
-	RightTime  time.Time             `json:"right_time"`
-	JoinDelay  time.Duration         `json:"join_delay"`
+	ID        string                 `json:"id"`
+	Timestamp time.Time              `json:"timestamp"`
+	LeftData  map[string]interface{} `json:"left_data"`
+	RightData map[string]interface{} `json:"right_data"`
+	JoinKey   string                 `json:"join_key"`
+	LeftTime  time.Time              `json:"left_time"`
+	RightTime time.Time              `json:"right_time"`
+	JoinDelay time.Duration          `json:"join_delay"`
 }
 
 // JoinResult represents the result of processing a join
 type JoinResult struct {
-	JoinedEvent *JoinedEvent `json:"joined_event,omitempty"`
-	IsJoined    bool         `json:"is_joined"`
-	IsOrphaned  bool         `json:"is_orphaned"`
-	IsLateArrival bool       `json:"is_late_arrival"`
+	JoinedEvent   *JoinedEvent `json:"joined_event,omitempty"`
+	IsJoined      bool         `json:"is_joined"`
+	IsOrphaned    bool         `json:"is_orphaned"`
+	IsLateArrival bool         `json:"is_late_arrival"`
 }
 
 // NewTemporalJoinEngine creates a new temporal join engine
@@ -127,7 +127,7 @@ func (j *TemporalJoinEngine) processEvent(ctx context.Context, event *StreamEven
 	if matchingEvent != nil {
 		// We found a match, create joined event
 		joinedEvent := j.createJoinedEvent(event, matchingEvent)
-		
+
 		// Remove the matching event from store since it's been joined
 		if err := j.removeEventFromStore(ctx, joinKeyValue, lookupSide, matchingEvent.ID); err != nil {
 			j.logger.WithError(err).Warn("Failed to remove joined event from store")
@@ -138,10 +138,10 @@ func (j *TemporalJoinEngine) processEvent(ctx context.Context, event *StreamEven
 		j.mutex.Unlock()
 
 		j.logger.WithFields(logrus.Fields{
-			"join_key":    joinKeyValue,
-			"left_time":   joinedEvent.LeftTime,
-			"right_time":  joinedEvent.RightTime,
-			"join_delay":  joinedEvent.JoinDelay,
+			"join_key":   joinKeyValue,
+			"left_time":  joinedEvent.LeftTime,
+			"right_time": joinedEvent.RightTime,
+			"join_delay": joinedEvent.JoinDelay,
 		}).Debug("Successfully joined events")
 
 		return &JoinResult{
@@ -237,7 +237,7 @@ func (j *TemporalJoinEngine) findMatchingEvent(ctx context.Context, joinKeyValue
 // storeEventForJoin stores an event in Redis for future joins
 func (j *TemporalJoinEngine) storeEventForJoin(ctx context.Context, event *StreamEvent) error {
 	eventKey := j.generateEventKey(event.JoinKey, event.Source, event.ID)
-	
+
 	eventData, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event for storage: %w", err)
@@ -280,7 +280,7 @@ func (j *TemporalJoinEngine) generateEventKey(joinKeyValue, streamSide, eventID 
 // createJoinedEvent creates a joined event from left and right events
 func (j *TemporalJoinEngine) createJoinedEvent(currentEvent, matchingEvent *StreamEvent) *JoinedEvent {
 	var leftEvent, rightEvent *StreamEvent
-	
+
 	if currentEvent.Source == "left" {
 		leftEvent = currentEvent
 		rightEvent = matchingEvent
@@ -357,7 +357,7 @@ func (j *TemporalJoinEngine) CleanupExpiredEvents(ctx context.Context) error {
 func (j *TemporalJoinEngine) GetMetrics() *JoinMetrics {
 	j.mutex.RLock()
 	defer j.mutex.RUnlock()
-	
+
 	return &JoinMetrics{
 		LeftEventsProcessed:  j.metrics.LeftEventsProcessed,
 		RightEventsProcessed: j.metrics.RightEventsProcessed,
@@ -375,7 +375,7 @@ func (j *TemporalJoinEngine) GetMetrics() *JoinMetrics {
 func (j *TemporalJoinEngine) ResetMetrics() {
 	j.mutex.Lock()
 	defer j.mutex.Unlock()
-	
+
 	j.metrics = &JoinMetrics{}
 }
 
@@ -386,24 +386,24 @@ func (j *TemporalJoinEngine) SetTimeWindow(timeWindow time.Duration) {
 	if timeWindow > maxWindow {
 		timeWindow = maxWindow
 	}
-	
+
 	j.mutex.Lock()
 	j.timeWindow = timeWindow
 	j.mutex.Unlock()
-	
+
 	j.logger.WithField("time_window", timeWindow).Info("Updated join time window")
 }
 
 // GetJoinStats returns summary statistics about the join performance
 func (j *TemporalJoinEngine) GetJoinStats() map[string]interface{} {
 	metrics := j.GetMetrics()
-	
+
 	totalEvents := metrics.LeftEventsProcessed + metrics.RightEventsProcessed
 	joinRate := float64(0)
 	if totalEvents > 0 {
 		joinRate = float64(metrics.SuccessfulJoins) / float64(totalEvents) * 100
 	}
-	
+
 	return map[string]interface{}{
 		"total_events_processed": totalEvents,
 		"successful_joins":       metrics.SuccessfulJoins,
@@ -411,8 +411,8 @@ func (j *TemporalJoinEngine) GetJoinStats() map[string]interface{} {
 		"orphaned_events":        metrics.OrphanedLeftEvents + metrics.OrphanedRightEvents,
 		"late_arrivals":          metrics.LateArrivals,
 		"state_store_size":       metrics.StateStoreSize,
-		"error_count":           metrics.ErrorCount,
-		"time_window":           j.timeWindow.String(),
+		"error_count":            metrics.ErrorCount,
+		"time_window":            j.timeWindow.String(),
 	}
 }
 

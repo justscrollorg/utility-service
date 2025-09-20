@@ -24,8 +24,8 @@ type HTTPServer struct {
 
 // PipelineRequest represents a pipeline creation request
 type PipelineRequest struct {
-	Name        string                     `json:"name" binding:"required"`
-	Description string                     `json:"description"`
+	Name        string                    `json:"name" binding:"required"`
+	Description string                    `json:"description"`
 	Source      pipeline.SourceConfig     `json:"source" binding:"required"`
 	Processing  pipeline.ProcessingConfig `json:"processing"`
 	Sink        pipeline.SinkConfig       `json:"sink" binding:"required"`
@@ -33,8 +33,8 @@ type PipelineRequest struct {
 
 // PipelineResponse represents a pipeline in API responses
 type PipelineResponse struct {
-	Name        string                     `json:"name"`
-	Description string                     `json:"description"`
+	Name        string                    `json:"name"`
+	Description string                    `json:"description"`
 	Source      pipeline.SourceConfig     `json:"source"`
 	Processing  pipeline.ProcessingConfig `json:"processing"`
 	Sink        pipeline.SinkConfig       `json:"sink"`
@@ -80,7 +80,7 @@ func NewHTTPServer(config *config.Config, pipelineManager *pipeline.Manager) *HT
 // Start starts the HTTP server
 func (s *HTTPServer) Start() error {
 	address := fmt.Sprintf(":%d", s.config.Server.Port)
-	
+
 	s.server = &http.Server{
 		Addr:         address,
 		Handler:      s.router,
@@ -136,7 +136,7 @@ func (s *HTTPServer) setupRoutes() {
 	// Serve static files for UI (if available)
 	s.router.Static("/static", "./web/static")
 	s.router.LoadHTMLGlob("web/templates/*")
-	
+
 	// Simple web UI
 	s.router.GET("/", s.indexPage)
 	s.router.GET("/ui", s.uiPage)
@@ -171,12 +171,12 @@ func (s *HTTPServer) readinessCheck(c *gin.Context) {
 
 func (s *HTTPServer) listPipelines(c *gin.Context) {
 	pipelines := s.pipelineManager.ListPipelines()
-	
+
 	responses := make([]PipelineResponse, len(pipelines))
 	for i, p := range pipelines {
 		responses[i] = s.pipelineToResponse(p)
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"pipelines": responses,
 		"count":     len(responses),
@@ -213,7 +213,7 @@ func (s *HTTPServer) createPipeline(c *gin.Context) {
 
 func (s *HTTPServer) getPipeline(c *gin.Context) {
 	name := c.Param("name")
-	
+
 	pipeline, exists := s.pipelineManager.GetPipeline(name)
 	if !exists {
 		s.errorResponse(c, http.StatusNotFound, "Pipeline not found", nil)
@@ -225,7 +225,7 @@ func (s *HTTPServer) getPipeline(c *gin.Context) {
 
 func (s *HTTPServer) updatePipeline(c *gin.Context) {
 	name := c.Param("name")
-	
+
 	var req PipelineRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		s.errorResponse(c, http.StatusBadRequest, "Invalid request", err)
@@ -260,7 +260,7 @@ func (s *HTTPServer) updatePipeline(c *gin.Context) {
 
 func (s *HTTPServer) deletePipeline(c *gin.Context) {
 	name := c.Param("name")
-	
+
 	if err := s.pipelineManager.DeletePipeline(name); err != nil {
 		s.errorResponse(c, http.StatusInternalServerError, "Failed to delete pipeline", err)
 		return
@@ -273,7 +273,7 @@ func (s *HTTPServer) deletePipeline(c *gin.Context) {
 
 func (s *HTTPServer) startPipeline(c *gin.Context) {
 	name := c.Param("name")
-	
+
 	pipelineInstance, exists := s.pipelineManager.GetPipeline(name)
 	if !exists {
 		s.errorResponse(c, http.StatusNotFound, "Pipeline not found", nil)
@@ -292,7 +292,7 @@ func (s *HTTPServer) startPipeline(c *gin.Context) {
 
 func (s *HTTPServer) stopPipeline(c *gin.Context) {
 	name := c.Param("name")
-	
+
 	if err := s.pipelineManager.StopPipeline(name); err != nil {
 		s.errorResponse(c, http.StatusInternalServerError, "Failed to stop pipeline", err)
 		return
@@ -305,7 +305,7 @@ func (s *HTTPServer) stopPipeline(c *gin.Context) {
 
 func (s *HTTPServer) getPipelineMetrics(c *gin.Context) {
 	name := c.Param("name")
-	
+
 	pipeline, exists := s.pipelineManager.GetPipeline(name)
 	if !exists {
 		s.errorResponse(c, http.StatusNotFound, "Pipeline not found", nil)
@@ -313,10 +313,10 @@ func (s *HTTPServer) getPipelineMetrics(c *gin.Context) {
 	}
 
 	metrics := pipeline.GetMetrics()
-	
+
 	c.JSON(http.StatusOK, gin.H{
-		"pipeline": name,
-		"metrics":  metrics,
+		"pipeline":  name,
+		"metrics":   metrics,
 		"timestamp": time.Now(),
 	})
 }
@@ -325,11 +325,11 @@ func (s *HTTPServer) getPipelineMetrics(c *gin.Context) {
 
 func (s *HTTPServer) getSystemMetrics(c *gin.Context) {
 	pipelines := s.pipelineManager.ListPipelines()
-	
+
 	totalEvents := int64(0)
 	runningPipelines := 0
 	failedPipelines := 0
-	
+
 	for _, p := range pipelines {
 		if p.Status == pipeline.StatusRunning {
 			runningPipelines++
@@ -345,7 +345,7 @@ func (s *HTTPServer) getSystemMetrics(c *gin.Context) {
 			"running_pipelines": runningPipelines,
 			"failed_pipelines":  failedPipelines,
 			"total_events":      totalEvents,
-			"uptime":           time.Since(time.Now().Truncate(time.Hour)), // Simplified
+			"uptime":            time.Since(time.Now().Truncate(time.Hour)), // Simplified
 		},
 		"timestamp": time.Now(),
 	})
@@ -360,10 +360,10 @@ func (s *HTTPServer) getSystemStatus(c *gin.Context) {
 			"redis_host":      s.config.Redis.Host,
 		},
 		"features": gin.H{
-			"deduplication": true,
-			"temporal_joins": true,
+			"deduplication":      true,
+			"temporal_joins":     true,
 			"batch_optimization": true,
-			"demo_mode": s.config.Demo.Enabled,
+			"demo_mode":          s.config.Demo.Enabled,
 		},
 	})
 }
@@ -373,7 +373,7 @@ func (s *HTTPServer) getSystemStatus(c *gin.Context) {
 func (s *HTTPServer) startDemo(c *gin.Context) {
 	eventsPerSecStr := c.DefaultQuery("events_per_sec", "10")
 	eventsPerSec, _ := strconv.Atoi(eventsPerSecStr)
-	
+
 	if eventsPerSec < 1 || eventsPerSec > 1000 {
 		s.errorResponse(c, http.StatusBadRequest, "events_per_sec must be between 1 and 1000", nil)
 		return
@@ -381,12 +381,12 @@ func (s *HTTPServer) startDemo(c *gin.Context) {
 
 	// Start demo data generation
 	// Implementation would start the demo generator
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Demo started successfully",
 		"config": gin.H{
 			"events_per_sec": eventsPerSec,
-			"duration": "unlimited",
+			"duration":       "unlimited",
 		},
 	})
 }
@@ -394,7 +394,7 @@ func (s *HTTPServer) startDemo(c *gin.Context) {
 func (s *HTTPServer) stopDemo(c *gin.Context) {
 	// Stop demo data generation
 	// Implementation would stop the demo generator
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Demo stopped successfully",
 	})
@@ -402,12 +402,12 @@ func (s *HTTPServer) stopDemo(c *gin.Context) {
 
 func (s *HTTPServer) getDemoStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"demo_running": s.config.Demo.Enabled,
+		"demo_running":    s.config.Demo.Enabled,
 		"data_generation": s.config.Demo.GenerateData,
 		"config": gin.H{
-			"events_per_sec": s.config.Demo.DataRate,
+			"events_per_sec":  s.config.Demo.DataRate,
 			"duplicate_ratio": s.config.Demo.DuplicateRatio,
-			"user_count": s.config.Demo.GenerateUsers,
+			"user_count":      s.config.Demo.GenerateUsers,
 		},
 	})
 }
@@ -416,18 +416,18 @@ func (s *HTTPServer) getDemoStatus(c *gin.Context) {
 
 func (s *HTTPServer) indexPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", gin.H{
-		"title": "GFlow ETL - Kafka to ClickHouse Streaming",
+		"title":       "GFlow ETL - Kafka to ClickHouse Streaming",
 		"description": "Real-time data processing with deduplication and joins",
 	})
 }
 
 func (s *HTTPServer) uiPage(c *gin.Context) {
 	pipelines := s.pipelineManager.ListPipelines()
-	
+
 	c.HTML(http.StatusOK, "ui.html", gin.H{
-		"title": "GFlow ETL Dashboard",
+		"title":     "GFlow ETL Dashboard",
 		"pipelines": pipelines,
-		"config": s.config,
+		"config":    s.config,
 	})
 }
 
@@ -451,11 +451,11 @@ func (s *HTTPServer) errorResponse(c *gin.Context, code int, message string, err
 		Code:    code,
 		Message: message,
 	}
-	
+
 	if err != nil {
 		response.Error = err.Error()
 		s.logger.WithError(err).Error(message)
 	}
-	
+
 	c.JSON(code, response)
 }

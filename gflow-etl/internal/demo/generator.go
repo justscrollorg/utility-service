@@ -25,11 +25,11 @@ type Generator struct {
 
 // User represents a demo user
 type User struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Tier     string `json:"tier"`
-	Country  string `json:"country"`
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	Tier       string    `json:"tier"`
+	Country    string    `json:"country"`
 	SignupDate time.Time `json:"signup_date"`
 }
 
@@ -72,16 +72,16 @@ type UserProfileEvent struct {
 
 // AnalyticsEvent represents general analytics events
 type AnalyticsEvent struct {
-	EventID     string                 `json:"event_id"`
-	EventType   string                 `json:"event_type"`
-	Timestamp   time.Time             `json:"timestamp"`
-	UserID      string                 `json:"user_id"`
-	SessionID   string                 `json:"session_id"`
-	Properties  map[string]interface{} `json:"properties"`
-	DeviceType  string                 `json:"device_type"`
-	Platform    string                 `json:"platform"`
-	Country     string                 `json:"country"`
-	Value       float64                `json:"value"`
+	EventID    string                 `json:"event_id"`
+	EventType  string                 `json:"event_type"`
+	Timestamp  time.Time              `json:"timestamp"`
+	UserID     string                 `json:"user_id"`
+	SessionID  string                 `json:"session_id"`
+	Properties map[string]interface{} `json:"properties"`
+	DeviceType string                 `json:"device_type"`
+	Platform   string                 `json:"platform"`
+	Country    string                 `json:"country"`
+	Value      float64                `json:"value"`
 }
 
 // GeneratorConfig configures the demo data generator
@@ -174,7 +174,7 @@ func (g *Generator) generateSessionEvents(ctx context.Context, config GeneratorC
 				UserAgent:       g.getRandomUserAgent(),
 				IPAddress:       g.getRandomIPAddress(),
 				SessionDuration: rand.Intn(3600) + 60, // 1 minute to 1 hour
-				PageViews:       rand.Intn(20) + 1,     // 1 to 20 page views
+				PageViews:       rand.Intn(20) + 1,    // 1 to 20 page views
 				EventType:       "session_event",
 			}
 
@@ -288,11 +288,11 @@ func (g *Generator) generateAnalyticsEvents(ctx context.Context, config Generato
 			eventType := eventTypes[rand.Intn(len(eventTypes))]
 
 			event := AnalyticsEvent{
-				EventID:   uuid.New().String(),
-				EventType: eventType,
-				Timestamp: time.Now(),
-				UserID:    user.ID,
-				SessionID: sessionID,
+				EventID:    uuid.New().String(),
+				EventType:  eventType,
+				Timestamp:  time.Now(),
+				UserID:     user.ID,
+				SessionID:  sessionID,
 				Properties: g.getEventProperties(eventType),
 				DeviceType: g.getRandomDeviceType(),
 				Platform:   g.getRandomPlatform(),
@@ -341,7 +341,7 @@ func (g *Generator) sendEvent(topic string, event interface{}) error {
 
 func (g *Generator) generateUserPool(count int) {
 	g.userPool = make([]User, count)
-	
+
 	firstNames := []string{"John", "Jane", "Mike", "Sarah", "David", "Lisa", "Chris", "Emma", "Ryan", "Ashley"}
 	lastNames := []string{"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"}
 	countries := []string{"US", "CA", "UK", "DE", "FR", "AU", "JP", "BR", "IN", "MX"}
@@ -350,7 +350,7 @@ func (g *Generator) generateUserPool(count int) {
 	for i := 0; i < count; i++ {
 		firstName := firstNames[rand.Intn(len(firstNames))]
 		lastName := lastNames[rand.Intn(len(lastNames))]
-		
+
 		g.userPool[i] = User{
 			ID:         fmt.Sprintf("user_%d", i+1),
 			Name:       fmt.Sprintf("%s %s", firstName, lastName),
@@ -371,7 +371,7 @@ func (g *Generator) generateSessionPool(count int) {
 
 func (g *Generator) generateMerchantPool() {
 	g.merchantPool = []string{
-		"Amazon", "Netflix", "Spotify", "Uber", "Airbnb", "Starbucks", "McDonald's", 
+		"Amazon", "Netflix", "Spotify", "Uber", "Airbnb", "Starbucks", "McDonald's",
 		"Best Buy", "Target", "Walmart", "Apple Store", "Google Play", "Steam",
 		"Adobe", "Microsoft", "Dropbox", "GitHub", "Slack", "Zoom", "Salesforce",
 	}
@@ -405,7 +405,7 @@ func (g *Generator) getRandomUserAgent() string {
 }
 
 func (g *Generator) getRandomIPAddress() string {
-	return fmt.Sprintf("%d.%d.%d.%d", 
+	return fmt.Sprintf("%d.%d.%d.%d",
 		rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256))
 }
 
@@ -492,7 +492,7 @@ func (g *Generator) applyJitter(duration time.Duration, enableJitter bool) time.
 	if !enableJitter {
 		return duration
 	}
-	
+
 	// Add ±20% jitter to make timing more realistic
 	jitter := time.Duration(float64(duration) * (rand.Float64()*0.4 - 0.2))
 	return duration + jitter

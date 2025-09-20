@@ -39,22 +39,22 @@ type JoinConfig struct {
 
 // ProcessingConfig defines data processing steps
 type ProcessingConfig struct {
-	Deduplication *DeduplicationConfig `json:"deduplication,omitempty"`
-	Filtering     *FilterConfig        `json:"filtering,omitempty"`
-	Transformation *TransformConfig    `json:"transformation,omitempty"`
+	Deduplication  *DeduplicationConfig `json:"deduplication,omitempty"`
+	Filtering      *FilterConfig        `json:"filtering,omitempty"`
+	Transformation *TransformConfig     `json:"transformation,omitempty"`
 }
 
 // DeduplicationConfig defines deduplication parameters
 type DeduplicationConfig struct {
 	Enabled    bool          `json:"enabled"`
-	Key        string        `json:"key"`        // Field name to deduplicate on
+	Key        string        `json:"key"`         // Field name to deduplicate on
 	TimeWindow time.Duration `json:"time_window"` // Window size (max 7 days like GlassFlow)
 }
 
 // FilterConfig defines filtering rules
 type FilterConfig struct {
-	Enabled bool              `json:"enabled"`
-	Rules   []FilterRule      `json:"rules"`
+	Enabled bool         `json:"enabled"`
+	Rules   []FilterRule `json:"rules"`
 }
 
 // FilterRule represents a single filter rule
@@ -66,8 +66,8 @@ type FilterRule struct {
 
 // TransformConfig defines data transformations
 type TransformConfig struct {
-	Enabled bool              `json:"enabled"`
-	Rules   []TransformRule   `json:"rules"`
+	Enabled bool            `json:"enabled"`
+	Rules   []TransformRule `json:"rules"`
 }
 
 // TransformRule represents a transformation rule
@@ -184,17 +184,17 @@ func (m *Manager) CreatePipeline(ctx context.Context, config *Config) error {
 	// Start pipeline
 	go func() {
 		defer cancel()
-		
+
 		config.Status = StatusRunning
 		config.UpdatedAt = time.Now()
-		
+
 		if err := processor.Start(pipelineCtx); err != nil {
 			config.Status = StatusFailed
 			config.UpdatedAt = time.Now()
 			fmt.Printf("Pipeline %s failed: %v\n", config.Name, err)
 			return
 		}
-		
+
 		config.Status = StatusStopped
 		config.UpdatedAt = time.Now()
 	}()
@@ -207,7 +207,7 @@ func (m *Manager) CreatePipeline(ctx context.Context, config *Config) error {
 func (m *Manager) GetPipeline(name string) (*Pipeline, bool) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	pipeline, exists := m.pipelines[name]
 	return pipeline, exists
 }
@@ -216,7 +216,7 @@ func (m *Manager) GetPipeline(name string) (*Pipeline, bool) {
 func (m *Manager) ListPipelines() []*Config {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	configs := make([]*Config, 0, len(m.pipelines))
 	for _, pipeline := range m.pipelines {
 		configs = append(configs, pipeline.Config)
@@ -228,16 +228,16 @@ func (m *Manager) ListPipelines() []*Config {
 func (m *Manager) StopPipeline(name string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	pipeline, exists := m.pipelines[name]
 	if !exists {
 		return fmt.Errorf("pipeline %s not found", name)
 	}
-	
+
 	pipeline.cancel()
 	pipeline.Config.Status = StatusStopped
 	pipeline.Config.UpdatedAt = time.Now()
-	
+
 	return pipeline.processor.Stop()
 }
 
@@ -246,10 +246,10 @@ func (m *Manager) DeletePipeline(name string) error {
 	if err := m.StopPipeline(name); err != nil {
 		return err
 	}
-	
+
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	delete(m.pipelines, name)
 	return nil
 }
@@ -258,13 +258,13 @@ func (m *Manager) DeletePipeline(name string) error {
 func (m *Manager) Shutdown(ctx context.Context) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	for name := range m.pipelines {
 		if err := m.StopPipeline(name); err != nil {
 			fmt.Printf("Error stopping pipeline %s: %v\n", name, err)
 		}
 	}
-	
+
 	return nil
 }
 
