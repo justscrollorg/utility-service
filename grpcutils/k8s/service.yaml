@@ -15,5 +15,14 @@ spec:
     targetPort: 50052
     protocol: TCP
     name: mongo-grpc
+  # Add GFlow ETL ports
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: gflow-http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: gflow-metrics
   selector:
     app: utility-service

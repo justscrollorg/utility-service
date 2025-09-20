@@ -1,0 +1,179 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gflow-etl
+  labels:
+    app: gflow-etl
+    component: streaming-etl
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: gflow-etl
+  template:
+    metadata:
+      labels:
+        app: gflow-etl
+        component: streaming-etl
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      containers:
+      - name: gflow-etl
+        image: justscroll/gflow-etl:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: GFLOW_KAFKA_BROKERS
+          value: "kafka.kafka.svc.cluster.local:9092"
+        - name: GFLOW_KAFKA_CONSUMER_GROUP
+          value: "gflow-etl-prod"
+        - name: GFLOW_CLICKHOUSE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-secret
+              key: CLICKHOUSE_HOST
+        - name: GFLOW_CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-secret
+              key: CLICKHOUSE_PASSWORD
+        - name: GFLOW_REDIS_HOST
+          value: "redis.default.svc.cluster.local"
+        - name: GFLOW_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: REDIS_PASSWORD
+              optional: true
+        - name: GFLOW_MONITORING_LOG_LEVEL
+          value: "info"
+        - name: GFLOW_DEMO_ENABLED
+          value: "true"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: config
+          mountPath: /etc/gflow
+          readOnly: true
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+      volumes:
+      - name: config
+        configMap:
+          name: gflow-etl-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gflow-etl
+  labels:
+    app: gflow-etl
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: gflow-etl
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gflow-etl-config
+data:
+  gflow-etl.yaml: |
+    server:
+      port: 8080
+      read_timeout: 30s
+      write_timeout: 30s
+    
+    kafka:
+      brokers:
+        - kafka.kafka.svc.cluster.local:9092
+      consumer_group: gflow-etl
+      batch_size: 1000
+      flush_interval: 5s
+    
+    clickhouse:
+      host: "{{ .Values.clickhouse.host | default "clickhouse.default.svc.cluster.local" }}"
+      port: 9000
+      database: default
+      username: default
+      batch_size: 10000
+      flush_timeout: 10s
+      max_retries: 3
+    
+    redis:
+      host: redis.default.svc.cluster.local
+      port: 6379
+      database: 0
+      pool_size: 10
+    
+    demo:
+      enabled: true
+      generate_data: true
+      data_rate: 100
+      generate_users: 1000
+      session_window: 1h
+      duplicate_ratio: 0.1
+    
+    monitoring:
+      enabled: true
+      metrics_port: 9090
+      log_level: info
+---
+# Secrets for external services
+apiVersion: v1
+kind: Secret
+metadata:
+  name: clickhouse-secret
+type: Opaque
+stringData:
+  CLICKHOUSE_HOST: "your-clickhouse-host"
+  CLICKHOUSE_PASSWORD: "your-clickhouse-password"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secret
+type: Opaque
+stringData:
+  REDIS_PASSWORD: "your-redis-password"

@@ -1,0 +1,53 @@
+# GFlow ETL Configuration
+# Inspired by GlassFlow's architecture for Kafka to ClickHouse streaming
+
+server:
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+
+kafka:
+  brokers:
+    - kafka.kafka.svc.cluster.local:9092  # Kubernetes service
+  consumer_group: gflow-etl
+  batch_size: 1000
+  flush_interval: 5s
+  sasl:
+    enabled: false
+    mechanism: "PLAIN"
+    username: ""
+    password: ""
+  tls:
+    enabled: false
+    insecure_skip_verify: true
+
+clickhouse:
+  host: clickhouse.default.svc.cluster.local  # Update with your ClickHouse service
+  port: 9000
+  database: default
+  username: default
+  password: ""  # Set via environment variable
+  tls: false
+  batch_size: 10000
+  flush_timeout: 10s
+  max_retries: 3
+
+redis:
+  host: redis.default.svc.cluster.local  # Redis for state management
+  port: 6379
+  password: ""  # Set via environment variable
+  database: 0
+  pool_size: 10
+
+demo:
+  enabled: true
+  generate_data: true
+  data_rate: 100  # events per second
+  generate_users: 1000
+  session_window: 1h
+  duplicate_ratio: 0.1  # 10% duplicates for testing
+
+monitoring:
+  enabled: true
+  metrics_port: 9090
+  log_level: info

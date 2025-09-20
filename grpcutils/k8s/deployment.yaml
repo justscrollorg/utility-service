@@ -1,21 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: utility-service
+  name: grpc-utilities
   labels:
-    app: utility-service
+    app: grpc-utilities
+    component: api-services
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
-      app: utility-service
+      app: grpc-utilities
   template:
     metadata:
       labels:
-        app: utility-service
+        app: grpc-utilities
+        component: api-services
     spec:
       containers:
-      - name: utility-service
+      - name: grpc-utilities
         image: justscroll/grpcutils:latest
         imagePullPolicy: Always
         ports:
@@ -31,18 +38,44 @@ spec:
               key: MONGO_URI
         resources:
           requests:
-            memory: "64Mi"
-            cpu: "50m"
-          limits:
             memory: "128Mi"
             cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
         livenessProbe:
           exec:
             command: ["/bin/sh", "-c", "nc -z localhost 50051 && nc -z localhost 50052"]
-          initialDelaySeconds: 30
+          initialDelaySeconds: 15
           periodSeconds: 10
+          timeoutSeconds: 5
         readinessProbe:
           exec:
             command: ["/bin/sh", "-c", "nc -z localhost 50051 && nc -z localhost 50052"]
           initialDelaySeconds: 5
           periodSeconds: 5
+          timeoutSeconds: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpc-utilities
+  labels:
+    app: grpc-utilities
+spec:
+  type: ClusterIP
+  ports:
+  - port: 50051
+    targetPort: 50051
+    protocol: TCP
+    name: hello-grpc
+  - port: 50052
+    targetPort: 50052
+    protocol: TCP
+    name: mongo-grpc
+  selector:
+    app: grpc-utilities
