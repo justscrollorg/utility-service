@@ -99,6 +99,16 @@ func (s *BatchSink) WriteEvent(ctx context.Context, event map[string]interface{}
 	s.batchMutex.Lock()
 	defer s.batchMutex.Unlock()
 
+	// Log event details for tracing
+	if eventID, exists := event["id"]; exists {
+		s.logger.WithFields(logrus.Fields{
+			"table":      s.tableName,
+			"event_id":   eventID,
+			"batch_size": len(s.batch),
+			"max_batch":  s.batchSize,
+		}).Debug("Received event for batching")
+	}
+
 	// Add event to batch
 	s.batch = append(s.batch, event)
 
@@ -109,6 +119,11 @@ func (s *BatchSink) WriteEvent(ctx context.Context, event map[string]interface{}
 
 	// Check if batch is full
 	if len(s.batch) >= s.batchSize {
+		s.logger.WithFields(logrus.Fields{
+			"table":      s.tableName,
+			"batch_size": len(s.batch),
+		}).Info("Batch full - triggering immediate flush")
+		
 		go s.flushBatch(ctx)
 	}
 
@@ -130,6 +145,7 @@ func (s *BatchSink) flushBatch(ctx context.Context) error {
 	s.batchMutex.Lock()
 	if len(s.batch) == 0 {
 		s.batchMutex.Unlock()
+		s.logger.Debug("Flush called but batch is empty")
 		return nil
 	}
 
@@ -140,6 +156,12 @@ func (s *BatchSink) flushBatch(ctx context.Context) error {
 	batchSize := len(batchToFlush)
 	s.batchMutex.Unlock()
 
+	s.logger.WithFields(logrus.Fields{
+		"table":      s.tableName,
+		"batch_size": batchSize,
+		"max_retries": s.maxRetries,
+	}).Info("Starting batch flush to ClickHouse")
+
 	startTime := time.Now()
 
 	// Retry logic with exponential backoff
@@ -148,6 +170,11 @@ func (s *BatchSink) flushBatch(ctx context.Context) error {
 		if attempt > 0 {
 			// Exponential backoff
 			backoffDelay := time.Duration(attempt*attempt) * time.Second
+			s.logger.WithFields(logrus.Fields{
+				"attempt": attempt,
+				"delay":   backoffDelay,
+			}).Warn("Retrying batch flush after failure")
+			
 			time.Sleep(backoffDelay)
 
 			s.metricsMutex.Lock()
@@ -169,16 +196,19 @@ func (s *BatchSink) flushBatch(ctx context.Context) error {
 			s.metricsMutex.Unlock()
 
 			s.logger.WithFields(logrus.Fields{
+				"table":          s.tableName,
 				"batch_size":     batchSize,
 				"flush_duration": flushDuration,
 				"attempt":        attempt + 1,
-			}).Debug("Successfully flushed batch to ClickHouse")
+				"events_total":   s.metrics.EventsInserted,
+			}).Info("Successfully flushed batch to ClickHouse")
 
 			return nil
 		}
 
 		lastErr = err
 		s.logger.WithFields(logrus.Fields{
+			"table":   s.tableName,
 			"attempt": attempt + 1,
 			"error":   err,
 		}).Warn("Failed to flush batch, retrying...")

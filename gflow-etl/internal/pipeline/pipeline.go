@@ -147,11 +147,15 @@ func NewManager(config *config.Config) *Manager {
 
 // CreatePipeline creates and starts a new pipeline
 func (m *Manager) CreatePipeline(ctx context.Context, config *Config) error {
+	fmt.Printf("Creating pipeline '%s'...\n", config.Name)
+	fmt.Printf("   Description: %s\n", config.Description)
+	
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	// Check if pipeline already exists
 	if _, exists := m.pipelines[config.Name]; exists {
+		fmt.Printf("Pipeline '%s' already exists\n", config.Name)
 		return fmt.Errorf("pipeline %s already exists", config.Name)
 	}
 
@@ -162,13 +166,17 @@ func (m *Manager) CreatePipeline(ctx context.Context, config *Config) error {
 	config.CreatedAt = time.Now()
 	config.UpdatedAt = time.Now()
 	config.Status = StatusCreated
+	fmt.Printf("Pipeline '%s' created at %s\n", config.Name, config.CreatedAt.Format("15:04:05"))
 
 	// Create processor based on configuration
+	fmt.Printf("Creating processor for pipeline '%s'...\n", config.Name)
 	processor, err := m.createProcessor(config)
 	if err != nil {
 		cancel()
+		fmt.Printf("Failed to create processor for '%s': %v\n", config.Name, err)
 		return fmt.Errorf("failed to create processor: %w", err)
 	}
+	fmt.Printf("Processor created for pipeline '%s'\n", config.Name)
 
 	// Create pipeline
 	pipeline := &Pipeline{
@@ -180,26 +188,31 @@ func (m *Manager) CreatePipeline(ctx context.Context, config *Config) error {
 			StartTime: time.Now(),
 		},
 	}
+	fmt.Printf("Pipeline '%s' structure created\n", config.Name)
 
 	// Start pipeline
 	go func() {
 		defer cancel()
+		fmt.Printf("Starting processor for pipeline '%s'...\n", config.Name)
 
 		config.Status = StatusRunning
 		config.UpdatedAt = time.Now()
+		fmt.Printf("Pipeline '%s' status: %s\n", config.Name, config.Status)
 
 		if err := processor.Start(pipelineCtx); err != nil {
 			config.Status = StatusFailed
 			config.UpdatedAt = time.Now()
-			fmt.Printf("Pipeline %s failed: %v\n", config.Name, err)
+			fmt.Printf("Pipeline '%s' failed: %v\n", config.Name, err)
 			return
 		}
 
 		config.Status = StatusStopped
 		config.UpdatedAt = time.Now()
+		fmt.Printf("Pipeline '%s' stopped\n", config.Name)
 	}()
 
 	m.pipelines[config.Name] = pipeline
+	fmt.Printf("Pipeline '%s' registered and started successfully\n", config.Name)
 	return nil
 }
 

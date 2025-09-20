@@ -186,6 +186,7 @@ func (s *HTTPServer) readinessCheck(c *gin.Context) {
 // Pipeline Management Endpoints
 
 func (s *HTTPServer) listPipelines(c *gin.Context) {
+	s.logger.Info("API request: List all pipelines")
 	pipelines := s.pipelineManager.ListPipelines()
 
 	responses := make([]PipelineResponse, len(pipelines))
@@ -193,6 +194,7 @@ func (s *HTTPServer) listPipelines(c *gin.Context) {
 		responses[i] = s.pipelineToResponse(p)
 	}
 
+	s.logger.WithField("count", len(responses)).Info("Pipeline list retrieved successfully")
 	c.JSON(http.StatusOK, gin.H{
 		"pipelines": responses,
 		"count":     len(responses),
@@ -387,17 +389,31 @@ func (s *HTTPServer) getSystemStatus(c *gin.Context) {
 // Demo Management
 
 func (s *HTTPServer) startDemo(c *gin.Context) {
+	s.logger.Info("API request: Start demo data generation")
+	
 	eventsPerSecStr := c.DefaultQuery("events_per_sec", "10")
 	eventsPerSec, _ := strconv.Atoi(eventsPerSecStr)
 
+	s.logger.WithFields(logrus.Fields{
+		"events_per_sec_param": eventsPerSecStr,
+		"events_per_sec_parsed": eventsPerSec,
+	}).Debug("Parsing demo parameters")
+
 	if eventsPerSec < 1 || eventsPerSec > 1000 {
+		s.logger.WithField("events_per_sec", eventsPerSec).Warn("Invalid events per second parameter")
 		s.errorResponse(c, http.StatusBadRequest, "events_per_sec must be between 1 and 1000", nil)
 		return
 	}
 
+	s.logger.WithFields(logrus.Fields{
+		"events_per_sec": eventsPerSec,
+		"demo_type":      "streaming_etl",
+	}).Info("Starting demo data generation")
+
 	// Start demo data generation
 	// Implementation would start the demo generator
 
+	s.logger.Info("Demo data generation started successfully")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Demo started successfully",
 		"config": gin.H{
@@ -408,16 +424,21 @@ func (s *HTTPServer) startDemo(c *gin.Context) {
 }
 
 func (s *HTTPServer) stopDemo(c *gin.Context) {
+	s.logger.Info("API request: Stop demo data generation")
+	
 	// Stop demo data generation
 	// Implementation would stop the demo generator
 
+	s.logger.Info("Demo data generation stopped successfully")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Demo stopped successfully",
 	})
 }
 
 func (s *HTTPServer) getDemoStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
+	s.logger.Info("API request: Get demo status")
+	
+	status := gin.H{
 		"demo_running":    s.config.Demo.Enabled,
 		"data_generation": s.config.Demo.GenerateData,
 		"config": gin.H{
@@ -425,7 +446,14 @@ func (s *HTTPServer) getDemoStatus(c *gin.Context) {
 			"duplicate_ratio": s.config.Demo.DuplicateRatio,
 			"user_count":      s.config.Demo.GenerateUsers,
 		},
-	})
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"demo_enabled": s.config.Demo.Enabled,
+		"data_rate":    s.config.Demo.DataRate,
+	}).Info("Demo status retrieved")
+
+	c.JSON(http.StatusOK, status)
 }
 
 // Web UI endpoints
