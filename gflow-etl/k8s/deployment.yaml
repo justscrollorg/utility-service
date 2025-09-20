@@ -135,14 +135,16 @@ metadata:
   labels:
     app: gflow-etl
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
   - port: 8080
     targetPort: 8080
+    nodePort: 30082
     protocol: TCP
     name: http
   - port: 9090
     targetPort: 9090
+    nodePort: 30092
     protocol: TCP
     name: metrics
   selector:
