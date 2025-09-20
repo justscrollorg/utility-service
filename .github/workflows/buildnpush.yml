@@ -67,9 +67,14 @@ jobs:
           docker build -t justscroll/grpcutils:latest .
           docker push justscroll/grpcutils:latest
       
-      - name: Build and Push gflow-etl Docker Image
+      - name: Build and Push gflow-etl Docker Image (with messaging-demo)
         if: (github.event.inputs.service == 'gflow-etl' || github.event.inputs.service == 'both') && github.event_name != 'pull_request'
         working-directory: ./gflow-etl
         run: |
+          # Build both binaries before Docker build
+          go build -o gflow-etl cmd/gflow-etl/main.go
+          go build -o messaging-demo cmd/messaging-demo/main.go
+          
+          # Build and push Docker image with both binaries
           docker build -t justscroll/gflow-etl:latest .
           docker push justscroll/gflow-etl:latest

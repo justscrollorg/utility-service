@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: messaging-demo
-        image: justscrollorg/gflow-etl:latest
+        image: justscroll/gflow-etl:latest
         command: ["./messaging-demo"]
         ports:
         - containerPort: 8081
