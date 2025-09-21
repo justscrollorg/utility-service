@@ -237,6 +237,47 @@ func (m *Manager) ListPipelines() []*Config {
 	return configs
 }
 
+// StartPipeline starts a stopped pipeline
+func (m *Manager) StartPipeline(name string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	pipeline, exists := m.pipelines[name]
+	if !exists {
+		return fmt.Errorf("pipeline %s not found", name)
+	}
+
+	if pipeline.Config.Status == StatusRunning {
+		return fmt.Errorf("pipeline %s is already running", name)
+	}
+
+	// Create new context for the pipeline
+	pipelineCtx, cancel := context.WithCancel(context.Background())
+	pipeline.cancel = cancel
+
+	// Update status
+	pipeline.Config.Status = StatusRunning
+	pipeline.Config.UpdatedAt = time.Now()
+
+	// Start processor in goroutine
+	go func() {
+		defer func() {
+			pipeline.Config.Status = StatusStopped
+			pipeline.Config.UpdatedAt = time.Now()
+		}()
+
+		if err := pipeline.processor.Start(pipelineCtx); err != nil {
+			pipeline.Config.Status = StatusFailed
+			pipeline.Config.UpdatedAt = time.Now()
+			fmt.Printf("Pipeline '%s' failed: %v\n", name, err)
+			return
+		}
+	}()
+
+	fmt.Printf("Pipeline '%s' started successfully\n", name)
+	return nil
+}
+
 // StopPipeline stops a pipeline
 func (m *Manager) StopPipeline(name string) error {
 	m.mutex.Lock()

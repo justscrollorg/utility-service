@@ -292,16 +292,10 @@ func (s *HTTPServer) deletePipeline(c *gin.Context) {
 func (s *HTTPServer) startPipeline(c *gin.Context) {
 	name := c.Param("name")
 
-	pipelineInstance, exists := s.pipelineManager.GetPipeline(name)
-	if !exists {
-		s.errorResponse(c, http.StatusNotFound, "Pipeline not found", nil)
+	if err := s.pipelineManager.StartPipeline(name); err != nil {
+		s.errorResponse(c, http.StatusInternalServerError, "Failed to start pipeline", err)
 		return
 	}
-
-	// Pipeline management would handle start/stop logic
-	// For now, we'll just update the status
-	pipelineInstance.Config.Status = pipeline.StatusRunning
-	pipelineInstance.Config.UpdatedAt = time.Now()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Pipeline started successfully",
