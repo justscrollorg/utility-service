@@ -69,7 +69,7 @@ spec:
               name: clickhouse-credentials
               key: password
         - name: GFLOW_CLICKHOUSE_TLS
-          value: "true"
+          value: "false"
         - name: GFLOW_CLICKHOUSE_BATCH_SIZE
           value: "50000"
         - name: GFLOW_CLICKHOUSE_MAX_RETRIES
@@ -169,11 +169,9 @@ data:
       flush_interval: 5s
     
     clickhouse:
-      host: clickhouse.default.svc.cluster.local
-      port: 9000
-      database: default
-      username: default
-      tls: true
+      # Host, port, database, username, password are provided via environment variables from Secret
+      # See deployment environment variables section for actual configuration
+      tls: false
       batch_size: 50000
       flush_timeout: 10s
       max_retries: 5
