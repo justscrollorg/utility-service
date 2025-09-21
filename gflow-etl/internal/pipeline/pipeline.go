@@ -198,19 +198,17 @@ func (m *Manager) CreatePipeline(ctx context.Context, config *Config) error {
 		config.UpdatedAt = time.Now()
 		fmt.Printf("Pipeline '%s' status: %s\n", config.Name, config.Status)
 
+		// processor.Start() will block until the processor is stopped
 		if err := processor.Start(pipelineCtx); err != nil {
 			config.Status = StatusFailed
 			config.UpdatedAt = time.Now()
 			fmt.Printf("Pipeline '%s' failed: %v\n", config.Name, err)
-			cancel()
-			return
+		} else {
+			config.Status = StatusStopped
+			config.UpdatedAt = time.Now()
+			fmt.Printf("Pipeline '%s' stopped normally\n", config.Name)
 		}
-
-		// Wait for context to be cancelled (when pipeline is stopped)
-		<-pipelineCtx.Done()
-		config.Status = StatusStopped
-		config.UpdatedAt = time.Now()
-		fmt.Printf("Pipeline '%s' stopped\n", config.Name)
+		cancel()
 	}()
 
 	m.pipelines[config.Name] = pipeline

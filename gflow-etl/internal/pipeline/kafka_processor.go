@@ -213,10 +213,13 @@ func (p *KafkaProcessor) Start(ctx context.Context) error {
 		"group_id":     fmt.Sprintf("gflow-etl-%s", p.pipelineConfig.Name),
 	}).Info("Starting Kafka processor - beginning message consumption")
 
-	// Start message processing loop
+	// Start message processing loop and wait for it to complete
 	p.wg.Add(1)
 	go p.messageProcessingLoop()
 
+	// Wait for context cancellation or processing to complete
+	p.wg.Wait()
+	
 	return nil
 }
 
