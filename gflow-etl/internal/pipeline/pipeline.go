@@ -192,7 +192,6 @@ func (m *Manager) CreatePipeline(ctx context.Context, config *Config) error {
 
 	// Start pipeline
 	go func() {
-		defer cancel()
 		fmt.Printf("Starting processor for pipeline '%s'...\n", config.Name)
 
 		config.Status = StatusRunning
@@ -203,9 +202,12 @@ func (m *Manager) CreatePipeline(ctx context.Context, config *Config) error {
 			config.Status = StatusFailed
 			config.UpdatedAt = time.Now()
 			fmt.Printf("Pipeline '%s' failed: %v\n", config.Name, err)
+			cancel()
 			return
 		}
 
+		// Wait for context to be cancelled (when pipeline is stopped)
+		<-pipelineCtx.Done()
 		config.Status = StatusStopped
 		config.UpdatedAt = time.Now()
 		fmt.Printf("Pipeline '%s' stopped\n", config.Name)
