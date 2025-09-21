@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -103,6 +104,7 @@ func Load() (*Config, error) {
 
 	// Enable environment variable support
 	viper.SetEnvPrefix("GFLOW")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	// Try to read config file
