@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clickhouse
+  labels:
+    name: clickhouse
+    purpose: analytical-database
+---

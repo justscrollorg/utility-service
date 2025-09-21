@@ -44,6 +44,19 @@ Thumbs.db
 .env.test.local
 .env.production.local
 
+# Security: Never commit credential files
+*credentials*
+*secrets*
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Kubernetes secrets (if generated locally)
+secret-*.yaml
+*-secret.yaml
+
 # Logs
 *.log
 logs/

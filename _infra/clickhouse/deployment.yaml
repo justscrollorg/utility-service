@@ -1,0 +1,141 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse
+  namespace: clickhouse
+  labels:
+    app: clickhouse
+    component: database
+    tier: backend
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Use Recreate for stateful applications with persistent storage
+  selector:
+    matchLabels:
+      app: clickhouse
+  template:
+    metadata:
+      labels:
+        app: clickhouse
+        component: database
+        tier: backend
+    spec:
+      # Security context for better security
+      securityContext:
+        runAsUser: 101  # ClickHouse user
+        runAsGroup: 101
+        fsGroup: 101
+        
+      containers:
+      - name: clickhouse
+        image: clickhouse/clickhouse-server:23.8
+        imagePullPolicy: IfNotPresent
+        
+        # Environment variables for authentication
+        env:
+        - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+          value: "1"
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-credentials
+              key: password
+        - name: CLICKHOUSE_USER
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-credentials
+              key: username
+        - name: CLICKHOUSE_DB
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-credentials
+              key: database
+              
+        # Resource limits optimized for analytical workloads
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m      # Increased CPU for better query performance
+            memory: 4Gi     # Increased memory for larger datasets
+            
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 8123
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+          
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 8123
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+          
+        # Startup probe for slower initial startup
+        startupProbe:
+          httpGet:
+            path: /ping
+            port: 8123
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 30  # Allow up to 5 minutes for startup
+          
+        # Network ports
+        ports:
+        - name: http
+          containerPort: 8123
+          protocol: TCP
+        - name: native
+          containerPort: 9000
+          protocol: TCP
+        - name: interserver
+          containerPort: 9009
+          protocol: TCP
+          
+        # Volume mounts with PERSISTENT storage
+        volumeMounts:
+        - name: clickhouse-data
+          mountPath: /var/lib/clickhouse
+        - name: clickhouse-logs
+          mountPath: /var/log/clickhouse-server
+        - name: clickhouse-config
+          mountPath: /etc/clickhouse-server/config.xml
+          subPath: config.xml
+        - name: clickhouse-config
+          mountPath: /etc/clickhouse-server/users.xml
+          subPath: users.xml
+          
+      # Volumes - CRITICAL: Using PersistentVolumeClaims instead of emptyDir
+      volumes:
+      - name: clickhouse-data
+        persistentVolumeClaim:
+          claimName: pvc-clickhouse-data
+      - name: clickhouse-logs
+        persistentVolumeClaim:
+          claimName: pvc-clickhouse-logs
+      - name: clickhouse-config
+        configMap:
+          name: clickhouse-config
+          
+      # Node affinity for better performance (optional)
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: In
+                values:
+                - "true"
+---

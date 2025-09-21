@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-clickhouse-data
+  namespace: clickhouse
+  labels:
+    app: clickhouse
+    component: data-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi  # Reasonable size for development/small production
+  storageClassName: linode-block-storage  # Linode's persistent storage class
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-clickhouse-logs
+  namespace: clickhouse
+  labels:
+    app: clickhouse
+    component: logs-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi  # Logs don't need much space
+  storageClassName: linode-block-storage
+---
