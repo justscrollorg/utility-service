@@ -90,24 +90,3 @@ spec:
     name: http
   selector:
     app: gflow-messaging-demo
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: gflow-messaging-demo-ingress
-  namespace: default
-  annotations:
-    kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-  - host: messaging-demo.gflow.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: gflow-messaging-demo-service
-            port:
-              number: 8081
