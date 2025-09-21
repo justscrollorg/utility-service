@@ -22,11 +22,11 @@ kafka:
     insecure_skip_verify: true
 
 clickhouse:
-  host: clickhouse.default.svc.cluster.local  # Update with your ClickHouse service
-  port: 9000
-  database: default
-  username: default
-  password: ""  # Set via environment variable
+  host: clickhouse-service.clickhouse.svc.cluster.local  # Will be overridden by env var
+  port: 9000                                              # Will be overridden by env var
+  database: gflow                                         # Will be overridden by env var
+  username: ""                                           # Set via environment variable
+  password: ""                                           # Set via environment variable
   tls: false
   batch_size: 10000
   flush_timeout: 10s
