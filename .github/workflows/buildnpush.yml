@@ -71,10 +71,12 @@ jobs:
         if: (github.event.inputs.service == 'gflow-etl' || github.event.inputs.service == 'both') && github.event_name != 'pull_request'
         working-directory: ./gflow-etl
         run: |
-          # Build both binaries before Docker build
+          # Build all binaries before Docker build
           go build -o gflow-etl cmd/gflow-etl/main.go
           go build -o messaging-demo cmd/messaging-demo/main.go
+          go build -o producer cmd/producer/main.go
+          go build -o producer-prod cmd/producer-prod/main.go
           
-          # Build and push Docker image with both binaries
+          # Build and push Docker image with all binaries
           docker build -t justscroll/gflow-etl:latest .
           docker push justscroll/gflow-etl:latest

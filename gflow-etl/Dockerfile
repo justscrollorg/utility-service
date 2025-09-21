@@ -16,6 +16,8 @@ COPY . .
 # Build the applications
 RUN CGO_ENABLED=0 GOOS=linux go build -o gflow-etl cmd/gflow-etl/main.go
 RUN CGO_ENABLED=0 GOOS=linux go build -o messaging-demo cmd/messaging-demo/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o producer cmd/producer/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o producer-prod cmd/producer-prod/main.go
 
 # Final stage
 FROM alpine:latest
@@ -28,6 +30,8 @@ WORKDIR /root/
 # Copy binaries and config
 COPY --from=builder /app/gflow-etl .
 COPY --from=builder /app/messaging-demo .
+COPY --from=builder /app/producer .
+COPY --from=builder /app/producer-prod .
 COPY --from=builder /app/gflow-etl.yaml .
 
 # Create directories for web assets (if needed)

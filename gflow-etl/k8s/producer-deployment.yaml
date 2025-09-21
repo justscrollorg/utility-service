@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
       - name: producer
-        image: gflow-etl:latest
-        command: ["/app/bin/producer-prod"]
+        image: justscroll/gflow-etl:latest
+        command: ["./producer-prod"]
         args: ["50", "20", "5"]  # session_rate, transaction_rate, profile_rate
         env:
         - name: KAFKA_BROKERS
