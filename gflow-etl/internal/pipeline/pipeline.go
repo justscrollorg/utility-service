@@ -287,68 +287,10 @@ func (m *Manager) createProcessor(config *Config) (Processor, error) {
 	case "kafka":
 		return NewKafkaProcessor(m.config, config)
 	case "kafka-join":
-		return NewJoinProcessor(m.config, config)
+		return NewTemporalJoinProcessor(m.config, config)
 	default:
 		return nil, fmt.Errorf("unsupported source type: %s", config.Source.Type)
 	}
 }
 
-// NewKafkaProcessor creates a new Kafka processor
-func NewKafkaProcessor(globalConfig *config.Config, pipelineConfig *Config) (Processor, error) {
-	// TODO: Implement Kafka processor
-	// For now, return a mock processor
-	return &MockProcessor{
-		name:   pipelineConfig.Name,
-		status: StatusStopped,
-	}, nil
-}
 
-// NewJoinProcessor creates a new join processor
-func NewJoinProcessor(globalConfig *config.Config, pipelineConfig *Config) (Processor, error) {
-	// TODO: Implement join processor
-	// For now, return a mock processor
-	return &MockProcessor{
-		name:   pipelineConfig.Name,
-		status: StatusStopped,
-	}, nil
-}
-
-// MockProcessor is a temporary implementation for testing
-type MockProcessor struct {
-	name   string
-	status Status
-	mutex  sync.RWMutex
-}
-
-func (p *MockProcessor) Start(ctx context.Context) error {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.status = StatusRunning
-	return nil
-}
-
-func (p *MockProcessor) Stop() error {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.status = StatusStopped
-	return nil
-}
-
-func (p *MockProcessor) GetStatus() Status {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
-	return p.status
-}
-
-func (p *MockProcessor) GetMetrics() *Metrics {
-	return &Metrics{
-		EventsProcessed:   0,
-		EventsDeduped:     0,
-		EventsJoined:      0,
-		EventsSunk:        0,
-		ErrorCount:        0,
-		ThroughputPerSec:  0,
-		LastProcessedTime: time.Now(),
-		StartTime:         time.Now(),
-	}
-}

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gflow-producer
+  labels:
+    app: gflow-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gflow-producer
+  template:
+    metadata:
+      labels:
+        app: gflow-producer
+    spec:
+      containers:
+      - name: producer
+        image: gflow-etl:latest
+        command: ["/app/bin/producer-prod"]
+        args: ["50", "20", "5"]  # session_rate, transaction_rate, profile_rate
+        env:
+        - name: KAFKA_BROKERS
+          value: "kafka.kafka.svc.cluster.local:9092"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep producer-prod"
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: producer-config
+data:
+  session_rate: "50"
+  transaction_rate: "20" 
+  profile_rate: "5"
+  kafka_brokers: "kafka.kafka.svc.cluster.local:9092"

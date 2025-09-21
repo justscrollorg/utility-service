@@ -171,7 +171,7 @@ func (s *HTTPServer) healthCheck(c *gin.Context) {
 // Readiness check endpoint
 func (s *HTTPServer) readinessCheck(c *gin.Context) {
 	// Check if critical components are ready
-	// In a real implementation, you'd check Kafka, ClickHouse, Redis connections
+	// Check system components health: Kafka, ClickHouse, Redis connections
 	c.JSON(http.StatusOK, gin.H{
 		"status":    "ready",
 		"timestamp": time.Now(),

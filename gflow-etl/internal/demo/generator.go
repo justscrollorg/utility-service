@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Generator generates realistic demo data for GlassFlow-style use cases
+// Generator produces realistic demo data for ETL pipeline testing
 type Generator struct {
 	writer       *kafka.Writer
 	logger       *logrus.Logger
@@ -181,7 +181,7 @@ func (g *Generator) generateSessionEvents(ctx context.Context, config GeneratorC
 			// Introduce duplicates based on configuration
 			if rand.Float64() < config.DuplicateRatio {
 				// Generate duplicate by reusing a recent session ID
-				// This simulates real-world duplicate scenarios
+				// Simulates production duplicate scenarios
 				event.SessionID = fmt.Sprintf("dup_%s_%d", sessionID, eventCounter%10)
 			}
 
@@ -337,7 +337,7 @@ func (g *Generator) sendEvent(topic string, event interface{}) error {
 	return g.writer.WriteMessages(context.Background(), message)
 }
 
-// Helper methods for generating realistic data
+// Utility methods for generating production-like test data
 
 func (g *Generator) generateUserPool(count int) {
 	g.userPool = make([]User, count)
@@ -410,7 +410,7 @@ func (g *Generator) getRandomIPAddress() string {
 }
 
 func (g *Generator) getRandomAmount() float64 {
-	// Generate realistic transaction amounts
+	// Generate production-like transaction amounts
 	amounts := []float64{9.99, 19.99, 49.99, 99.99, 199.99, 299.99, 499.99, 999.99}
 	return amounts[rand.Intn(len(amounts))] + rand.Float64()
 }
@@ -493,7 +493,7 @@ func (g *Generator) applyJitter(duration time.Duration, enableJitter bool) time.
 		return duration
 	}
 
-	// Add ±20% jitter to make timing more realistic
+	// Add ±20% jitter for production-like timing variance
 	jitter := time.Duration(float64(duration) * (rand.Float64()*0.4 - 0.2))
 	return duration + jitter
 }

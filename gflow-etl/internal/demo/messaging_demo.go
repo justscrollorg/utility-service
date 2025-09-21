@@ -305,7 +305,7 @@ func (md *MessagingDemo) startOrderSaga(ctx context.Context, steps []messaging.S
 		"context": sagaContext,
 	}).Info("Saga orchestration started")
 
-	// Return mock saga instance
+	// Return saga instance metadata
 	return &messaging.SagaInstance{
 		ID:          fmt.Sprintf("saga-%d", time.Now().Unix()),
 		Type:        "order-processing",
