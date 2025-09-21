@@ -44,7 +44,6 @@ data:
             <max_parts_in_total>100000</max_parts_in_total>
             <max_compress_block_size>1048576</max_compress_block_size>
             <min_compress_block_size>65536</min_compress_block_size>
-            <max_block_size>1048576</max_block_size>
         </merge_tree>
 
         <!-- Compression for better storage efficiency -->
