@@ -4,12 +4,140 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 )
+
+// createTopic creates a Kafka topic if it doesn't exist
+func createTopic(brokers []string, topicName string, partitions int, replicationFactor int) error {
+	conn, err := kafka.Dial("tcp", brokers[0])
+	if err != nil {
+		return fmt.Errorf("failed to connect to kafka: %w", err)
+	}
+	defer conn.Close()
+
+	controller, err := conn.Controller()
+	if err != nil {
+		return fmt.Errorf("failed to get controller: %w", err)
+	}
+
+	controllerConn, err := kafka.Dial("tcp", net.JoinHostPort(controller.Host, strconv.Itoa(controller.Port)))
+	if err != nil {
+		return fmt.Errorf("failed to connect to controller: %w", err)
+	}
+	defer controllerConn.Close()
+
+	topicConfigs := []kafka.TopicConfig{
+		{
+			Topic:             topicName,
+			NumPartitions:     partitions,
+			ReplicationFactor: replicationFactor,
+		},
+	}
+
+	err = controllerConn.CreateTopics(topicConfigs...)
+	if err != nil {
+		// Topic might already exist, which is fine
+		return nil
+	}
+
+	return nil
+}
+
+// NewMessageQueue creates a new message queue with topic creation
+func NewMessageQueue(brokers []string, topic string) (*MessageQueue, error) {
+	// Create topic if it doesn't exist
+	if err := createTopic(brokers, topic, 3, 1); err != nil {
+		return nil, fmt.Errorf("failed to create topic %s: %w", topic, err)
+	}
+
+	writer := &kafka.Writer{
+		Addr:         kafka.TCP(brokers...),
+		Topic:        topic,
+		Balancer:     &kafka.LeastBytes{},
+		BatchTimeout: 10 * time.Millisecond,
+		BatchSize:    100,
+	}
+
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: brokers,
+		Topic:   topic,
+		GroupID: fmt.Sprintf("message-queue-%s", topic),
+	})
+
+	return &MessageQueue{
+		writer: writer,
+		reader: reader,
+		logger: logrus.New(),
+		topic:  topic,
+	}, nil
+}
+
+// NewPubSubBroker creates a new pub-sub broker with topic creation
+func NewPubSubBroker(brokers []string, topic string) (*PubSubBroker, error) {
+	// Create topic if it doesn't exist
+	if err := createTopic(brokers, topic, 3, 1); err != nil {
+		return nil, fmt.Errorf("failed to create topic %s: %w", topic, err)
+	}
+
+	writer := &kafka.Writer{
+		Addr:         kafka.TCP(brokers...),
+		Topic:        topic,
+		Balancer:     &kafka.LeastBytes{},
+		BatchTimeout: 10 * time.Millisecond,
+		BatchSize:    100,
+	}
+
+	return &PubSubBroker{
+		writer: writer,
+		logger: logrus.New(),
+		topic:  topic,
+	}, nil
+}
+
+// NewEventSubscriber creates a new event subscriber with topic creation
+func NewEventSubscriber(brokers []string, topic string, groupID string) (*EventSubscriber, error) {
+	// Create topic if it doesn't exist
+	if err := createTopic(brokers, topic, 3, 1); err != nil {
+		return nil, fmt.Errorf("failed to create topic %s: %w", topic, err)
+	}
+
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: brokers,
+		Topic:   topic,
+		GroupID: groupID,
+	})
+
+	return &EventSubscriber{
+		reader:        reader,
+		logger:        logrus.New(),
+		eventHandlers: make(map[string]EventHandler),
+	}, nil
+}
+
+// NewSagaOrchestrator creates a new saga orchestrator with topic creation
+func NewSagaOrchestrator(brokers []string, topic string) (*SagaOrchestrator, error) {
+	// Create topic if it doesn't exist
+	if err := createTopic(brokers, topic, 3, 1); err != nil {
+		return nil, fmt.Errorf("failed to create topic %s: %w", topic, err)
+	}
+
+	publisher, err := NewPubSubBroker(brokers, topic)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create publisher: %w", err)
+	}
+
+	return &SagaOrchestrator{
+		publisher: publisher,
+		logger:    logrus.New(),
+		sagas:     make(map[string]*SagaInstance),
+	}, nil
+}
 
 // MessageQueue implements async task queue pattern
 type MessageQueue struct {

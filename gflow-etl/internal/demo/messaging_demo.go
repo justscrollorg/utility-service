@@ -33,11 +33,26 @@ type MessagingDemo struct {
 func NewMessagingDemo(kafkaBrokers []string) (*MessagingDemo, error) {
 	logger := logrus.New()
 
-	// Initialize messaging components with basic configurations
-	messageQueue := &messaging.MessageQueue{}
-	pubSub := &messaging.PubSubBroker{}
-	subscriber := &messaging.EventSubscriber{}
-	saga := &messaging.SagaOrchestrator{}
+	// Initialize messaging components with proper Kafka configuration
+	messageQueue, err := messaging.NewMessageQueue(kafkaBrokers, "demo-message-queue")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create message queue: %w", err)
+	}
+
+	pubSub, err := messaging.NewPubSubBroker(kafkaBrokers, "demo-events")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pub-sub broker: %w", err)
+	}
+
+	subscriber, err := messaging.NewEventSubscriber(kafkaBrokers, "demo-events", "demo-subscriber-group")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event subscriber: %w", err)
+	}
+
+	saga, err := messaging.NewSagaOrchestrator(kafkaBrokers, "demo-saga")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create saga orchestrator: %w", err)
+	}
 
 	return &MessagingDemo{
 		logger:       logger,
